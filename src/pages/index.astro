@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import PostList from '../components/PostList.astro';
+import Sidebar from '../components/Sidebar.astro';
+---
+
+<Layout>
+  <div class="layout-side">
+    <div class="layout-side__main">
+      <Hero />
+      <PostList />
+    </div>
+    <div class="layout-side__aside">
+      <Sidebar />
+    </div>
+  </div>
+</Layout>

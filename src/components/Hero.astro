@@ -1,0 +1,13 @@
+---
+import { getCollection } from 'astro:content';
+const posts = await getCollection('blog');
+const total = posts.length;
+---
+
+<section class="hero">
+  <p class="hero__eyebrow">记忆花园 · Memory Garden</p>
+  <h1>记录思考、创作<br />与 AI 探索的旅程</h1>
+  <p>
+    这里收录我的随笔、技术笔记与开源项目进展。已发布 {total} 篇文章，持续生长中。
+  </p>
+</section>

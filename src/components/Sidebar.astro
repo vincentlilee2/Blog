@@ -1,0 +1,122 @@
+---
+// 右侧边栏：个人简介 + 日期归档 + 主题分类 + RSS
+// showMonthPosts=true 时，在归档「最新月份」下直接列出当月文章标题（文章展示页用）
+import { getCollection } from 'astro:content';
+import siteConfig from '../../site-config.json';
+
+const { showMonthPosts = false } = Astro.props;
+
+const author = siteConfig.author || {};
+const posts = (await getCollection('blog')).filter((p) => p.data.published);
+
+// 按「年-月」归档（ISO 字符串字典序 = 时间序）
+const byMonth = new Map();
+for (const p of posts) {
+  const key = `${p.data.date.getFullYear()}-${String(p.data.date.getMonth() + 1).padStart(2, '0')}`;
+  if (!byMonth.has(key)) byMonth.set(key, 0);
+  byMonth.set(key, byMonth.get(key) + 1);
+}
+const months = [...byMonth.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+
+// 最新月份的文章（按日期倒序），用于「当月文章」列表
+const latestKey = months[0]?.[0];
+const latestMonthPosts = latestKey
+  ? posts
+      .filter(
+        (p) =>
+          `${p.data.date.getFullYear()}-${String(p.data.date.getMonth() + 1).padStart(2, '0')}` ===
+          latestKey
+      )
+      .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  : [];
+
+// 主题（标签）统计，按文章数倒序
+const tagCounts = new Map();
+for (const p of posts) {
+  for (const t of p.data.tags) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+}
+const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]);
+const monthLabel = (key) => {
+  const [y, m] = key.split('-');
+  return `${y}年${Number(m)}月`;
+};
+---
+
+<aside class="sidebar">
+  <!-- 个人简介 -->
+  <div class="side-card side-about">
+    <div class="side-about__top">
+      {author.avatar ? (
+        <img class="side-avatar-img" src={author.avatar} alt={author.name} />
+      ) : (
+        <div class="side-avatar">{(author.name || 'V').charAt(0)}</div>
+      )}
+      <div>
+        <div class="side-about__name">{author.name || 'Vincent'}</div>
+        <div class="side-about__role">{author.role || ''}</div>
+      </div>
+    </div>
+    {author.bio && <p class="side-about__bio">{author.bio}</p>}
+    <div class="side-links">
+      {author.github && (
+        <a class="side-link" href={author.github} target="_blank" rel="noopener">GitHub ↗</a>
+      )}
+      {author.xiaohongshu && (
+        <a class="side-link" href={author.xiaohongshu} target="_blank" rel="noopener">小红书 ↗</a>
+      )}
+      {author.bilibili && (
+        <a class="side-link" href={author.bilibili} target="_blank" rel="noopener">B站 ↗</a>
+      )}
+    </div>
+  </div>
+
+  <!-- 日期归档 -->
+  <div class="side-card">
+    <h3>📅 归档</h3>
+    <ul class="side-list">
+      {
+        months.map(([key, count]) => (
+          <li>
+            <a href={`/archive#${key}`}>{monthLabel(key)}</a>
+            <span class="side-count">{count}</span>
+          </li>
+        ))
+      }
+    </ul>
+    {
+      showMonthPosts && latestMonthPosts.length > 0 && (
+        <div class="side-month-posts">
+          <div class="side-month-posts__title">本月文章 · {monthLabel(latestKey)}</div>
+          <ul class="side-month-posts__list">
+            {
+              latestMonthPosts.map((p) => (
+                <li>
+                  <a href={`/posts/${p.id}`}>{p.data.title}</a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      )
+    }
+  </div>
+
+  <!-- 主题分类 -->
+  <div class="side-card">
+    <h3>🏷️ 主题</h3>
+    <div class="side-tags">
+      {
+        tags.map(([tag, count]) => (
+          <a class="tag" href={`/tags/${encodeURIComponent(tag)}`}>
+            #{tag}<span class="side-count">{count}</span>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+
+  <!-- RSS 订阅 -->
+  <div class="side-card side-rss">
+    <a class="side-link" href="/rss.xml" target="_blank" rel="noopener">📡 RSS 订阅</a>
+  </div>
+</aside>

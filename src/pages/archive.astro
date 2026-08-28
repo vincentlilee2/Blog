@@ -1,0 +1,58 @@
+---
+// 归档页：按「年-月」分组展示全部文章
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import Sidebar from '../components/Sidebar.astro';
+
+const posts = (await getCollection('blog'))
+  .filter((p) => p.data.published)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const byMonth = new Map();
+for (const p of posts) {
+  const key = `${p.data.date.getFullYear()}-${String(p.data.date.getMonth() + 1).padStart(2, '0')}`;
+  if (!byMonth.has(key)) byMonth.set(key, []);
+  byMonth.get(key).push(p);
+}
+const months = [...byMonth.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+
+const fmt = (d) =>
+  new Date(d).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+const monthLabel = (key) => {
+  const [y, m] = key.split('-');
+  return `${y}年${Number(m)}月`;
+};
+---
+
+<Layout title="归档 · MemoryGarden Blog">
+  <div class="layout-side">
+    <div class="layout-side__main">
+      <h1 class="page-title">归档</h1>
+      <p class="arch-total">共 {posts.length} 篇文章</p>
+      {
+        months.map(([key, list]) => (
+          <section class="arch-month" id={key}>
+            <h2 class="arch-month__title">{monthLabel(key)} <span>{list.length} 篇</span></h2>
+            <ul class="arch-list">
+              {
+                list.map((p) => (
+                  <li>
+                    <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
+                    <a href={`/posts/${p.id}`}>{p.data.title}</a>
+                  </li>
+                ))
+              }
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+    <div class="layout-side__aside">
+      <Sidebar />
+    </div>
+  </div>
+</Layout>

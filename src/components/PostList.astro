@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .filter((p) => p.data.published)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const fmt = (d) =>
+  new Date(d).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+---
+
+<section class="post-list">
+  {
+    posts.map((post) => (
+      <article class="post-card">
+        {post.data.cover && (
+          <a href={`/posts/${post.id}`}>
+            <img class="post-card__cover" src={post.data.cover} alt={post.data.title} loading="lazy" />
+          </a>
+        )}
+        <div class="post-card__meta">
+          <time datetime={post.data.date.toISOString()}>{fmt(post.data.date)}</time>
+          {post.data.audience !== 'public' && (
+            <span>· {post.data.audience}</span>
+          )}
+        </div>
+        <h2>
+          <a href={`/posts/${post.id}`}>{post.data.title}</a>
+        </h2>
+        <p class="post-card__desc">{post.data.description}</p>
+        <div class="tag-cloud">
+          {post.data.tags.map((tag) => (
+            <a class="tag" href={`/tags/${encodeURIComponent(tag)}`}>
+              #{tag}
+            </a>
+          ))}
+        </div>
+      </article>
+    ))
+  }
+</section>

@@ -1,0 +1,49 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import PostList from '../../components/PostList.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => data.published);
+  const tags = [...new Set(posts.flatMap((p) => p.data.tags))];
+  return tags.map((tag) => ({ params: { tag }, props: { tag } }));
+}
+
+const { tag } = Astro.props;
+
+const filtered = (await getCollection('blog'))
+  .filter((p) => p.data.published && p.data.tags.includes(tag))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const fmt = (d) =>
+  new Date(d).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+---
+
+<Layout title={`#${tag} · MemoryGarden Blog`}>
+  <h1 class="page-title">#{tag}</h1>
+  <section class="post-list">
+    {
+      filtered.map((post) => (
+        <article class="post-card">
+          <div class="post-card__meta">
+            <time datetime={post.data.date.toISOString()}>{fmt(post.data.date)}</time>
+          </div>
+          <h2>
+            <a href={`/posts/${post.id}`}>{post.data.title}</a>
+          </h2>
+          <p class="post-card__desc">{post.data.description}</p>
+          <div class="tag-cloud">
+            {post.data.tags.map((t) => (
+              <a class="tag" href={`/tags/${encodeURIComponent(t)}`}>#{t}</a>
+            ))}
+          </div>
+        </article>
+      ))
+    }
+  </section>
+  <p style="margin-top:2rem;"><a href="/tags" class="tag">← 所有标签</a></p>
+</Layout>
