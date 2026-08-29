@@ -90,7 +90,6 @@ function AdminView() {
 
   const edit = async (p) => {
     setEditing(p.slug);
-    setView('edit');
     try {
       const r = await fetch(`${API}/blog/posts/${p.slug}`, { headers });
       const d = await r.json();
@@ -171,7 +170,7 @@ function AdminView() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ marginTop: 0 }}>文章列表</h3>
-              {editing === null && <button className="btn btn-primary" onClick={() => { setEditing(''); setForm({ slug: '', title: '', description: '', date: new Date().toISOString().slice(0, 10), tags: '', cover: '', published: true, audience: 'public', content: '' }); setView('edit'); }}>＋ 新建</button>}
+              {editing === null && <button className="btn btn-primary" onClick={() => { setEditing(''); setForm({ slug: '', title: '', description: '', date: new Date().toISOString().slice(0, 10), tags: '', cover: '', published: true, audience: 'public', content: '' }); }}>＋ 新建</button>}
             </div>
             {loading ? <p>加载中…</p> : (
               <ul className="post-list">
