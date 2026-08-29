@@ -51,6 +51,8 @@ published: true     # false 则不发布
 
 保存后 dev 服务器热更新即可看到。
 
+> **本博客无需后台管理系统**——文章的发布就是「在 `src/content/blog/` 新建一个 `.md` 文件」。构建即发布，Git 即数据库：写文件 → `npm run build` → 上传 `dist/`，文章即上线。如需网页式写作后台，可自建（参考 [DEPLOY.md](./DEPLOY.md) 的自动同步脚本），或接入 MyCenter 生态的统一发布后台；但后台只是「写 `.md` 文件的网页封装」，并非博客运行所必需。
+
 ### 构建静态站点
 
 ```bash
