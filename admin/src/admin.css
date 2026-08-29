@@ -1,30 +1,75 @@
 :root {
   --fg: #1c1c1e; --muted: #8a8a8e; --border: #e6e6e3; --bg: #fafaf8; --card: #fff;
-  --accent: #c8643c; --danger: #d9534f;
+  --accent: #c8643c; --accent-soft: #fdf1ec; --danger: #d9534f;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, "PingFang SC", sans-serif; background: var(--bg); color: var(--fg); }
+body { font-family: -apple-system, "PingFang SC", sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
 .admin-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-.admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 20px; }
+
+/* ─── 头部导航 ─── */
+.admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
 .admin-title { font-size: 1.4rem; }
-.admin-nav button { background: none; border: none; font-size: 1rem; padding: 6px 12px; cursor: pointer; color: var(--muted); border-radius: 8px; }
-.admin-nav button.active { color: var(--fg); background: #f0ece6; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.admin-nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.admin-nav button { background: none; border: none; font-size: 1rem; padding: 6px 12px; cursor: pointer; color: var(--muted); border-radius: 8px; transition: background .15s, color .15s; }
+.admin-nav button:hover { background: #f0ece6; color: var(--fg); }
+.admin-nav button.active { color: var(--fg); background: #f0ece6; font-weight: 600; }
+.nav-admin-home { font-size: .9rem; color: var(--accent); text-decoration: none; margin-left: 8px; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 8px; transition: background .15s, color .15s; white-space: nowrap; }
+.nav-admin-home:hover { background: var(--accent); color: #fff; }
+
+/* ─── 卡片 ─── */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+.card h3 { font-size: 1.05rem; }
+
+/* ─── 表单 ─── */
 label { display: block; font-size: .85rem; color: var(--muted); margin: 12px 0 4px; }
-input, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; font-family: inherit; }
+input, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; font-family: inherit; background: #fff; transition: border-color .15s, box-shadow .15s; }
+input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,100,60,.12); }
+textarea { resize: vertical; min-height: 120px; }
 .row { display: flex; gap: 14px; }
 .row > div { flex: 1; }
-.btn { background: #f0ece6; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: .9rem; }
+
+/* ─── 按钮 ─── */
+.btn { background: #f0ece6; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: .9rem; transition: background .15s, transform .1s, border-color .15s; }
+.btn:hover { background: #e8e2da; }
+.btn:active { transform: scale(.98); }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: #b0542e; }
 .btn-danger { background: #fff; color: var(--danger); border-color: var(--danger); }
-.msg { padding: 8px 12px; border-radius: 8px; margin: 10px 0; font-size: .9rem; }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ─── 消息 ─── */
+.msg { padding: 8px 12px; border-radius: 8px; margin: 10px 0; font-size: .9rem; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 .msg-ok { background: #e8f5e9; color: #2e7d32; }
 .msg-err { background: #fdecea; color: var(--danger); }
+
+/* ─── 文章列表 ─── */
 .post-list { list-style: none; }
-.post-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.post-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+.post-item:last-child { border-bottom: none; }
 .post-item h4 { font-size: 1rem; }
 .post-item small { color: var(--muted); }
-.badge { background: #eee; color: #888; font-size: .7rem; padding: 1px 6px; border-radius: 6px; margin-left: 6px; }
+.post-item .btn { white-space: nowrap; }
+.badge { background: #eee; color: #888; font-size: .7rem; padding: 1px 6px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+.badge--draft { background: #fff3cd; color: #8a6d3b; }
+
+/* ─── 媒体库 ─── */
 .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
-.media-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: .8rem; }
+.media-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: .8rem; transition: box-shadow .15s, border-color .15s; overflow: hidden; }
+.media-item:hover { box-shadow: 0 3px 10px rgba(0,0,0,.08); border-color: #d8d8d4; }
+.media-item img { display: block; width: 100%; height: 120px; object-fit: cover; border-radius: 6px; background: #f4f4f1; }
+.media-item .media-name { display: block; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-item .media-actions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.media-item .btn { padding: 4px 8px; font-size: .75rem; }
+
+/* ─── 上传区 ─── */
 .dropzone { background: #fcfbf9; }
+.dropzone.dragover { border-color: var(--accent) !important; background: var(--accent-soft); }
+
+/* ─── 响应式 ─── */
+@media (max-width: 640px) {
+  .row { flex-direction: column; gap: 0; }
+  .post-item { flex-direction: column; align-items: flex-start; }
+  .admin-header { flex-direction: column; align-items: flex-start; }
+}

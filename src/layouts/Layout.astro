@@ -40,7 +40,7 @@ const publicMode = import.meta.env.PUBLIC_MODE || 'local';
           )}
           <a href="/rss.xml" class="nav-icon" title="RSS 订阅" aria-label="RSS 订阅">📡</a>
           {publicMode !== 'server' && (
-            <a href="http://localhost:18792/admin" class="nav-admin" target="_blank" rel="noopener" title="后台发布管理">✍️ 发布</a>
+            <a href="http://localhost:18792/admin" class="nav-admin" title="后台发布管理">✍️ 发布</a>
           )}
           <button class="theme-toggle" id="theme-toggle" aria-label="切换主题">🌗</button>
         </nav>

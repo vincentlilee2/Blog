@@ -16,6 +16,7 @@ function AdminView() {
   });
   const [busyUpload, setBusyUpload] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
+  const [dragover, setDragover] = useState(false);
   const [view, setView] = useState('posts');
   const contentRef = useRef(null);
 
@@ -107,6 +108,7 @@ function AdminView() {
           <button className={view === 'posts' ? 'active' : ''} onClick={() => setView('posts')}>文章</button>
           <button className={view === 'media' ? 'active' : ''} onClick={() => setView('media')}>媒体</button>
           <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>设置</button>
+          <a href="http://localhost:3003/" className="nav-admin-home" title="返回博客首页">← 返回博客</a>
         </nav>
       </header>
 
@@ -145,9 +147,10 @@ function AdminView() {
               </div>
               <label>正文（Markdown）</label>
               <div
-                className="dropzone"
-                onDrop={onDrop}
-                onDragOver={(e) => e.preventDefault()}
+                className={`dropzone${dragover ? ' dragover' : ''}`}
+                onDrop={(e) => { setDragover(false); onDrop(e); }}
+                onDragOver={(e) => { e.preventDefault(); setDragover(true); }}
+                onDragLeave={() => setDragover(false)}
                 style={{ border: '1px dashed #ccc', borderRadius: 8, padding: 8, marginBottom: 8 }}
               >
                 <textarea ref={contentRef} value={form.content} onChange={set('content')} rows={14} style={{ width: '100%', fontFamily: 'monospace' }} />
@@ -177,7 +180,7 @@ function AdminView() {
                 {posts.map((p) => (
                   <li key={p.slug} className="post-item">
                     <div>
-                      <h4>{p.title || p.slug} {p.published === false && <span className="badge">草稿</span>}</h4>
+                      <h4>{p.title || p.slug} {p.published === false && <span className="badge badge--draft">草稿</span>}</h4>
                       <small>{p.date} · {Array.isArray(p.tags) ? p.tags.join(', ') : ''} · <code>{p.slug}.md</code></small>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -201,6 +204,7 @@ function AdminView() {
 function MediaView({ onUseCover }) {
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(null);
   const load = useCallback(async () => {
     try {
       const r = await fetch(`${API}/media/list`, { headers });
@@ -234,10 +238,10 @@ function MediaView({ onUseCover }) {
       <div className="media-grid">
         {files.map((f) => (
           <div key={f.url} className="media-item">
-            {f.type === 'images' ? <img src={f.url} alt={f.name} style={{ maxWidth: '100%' }} /> : <span>🎞 {f.name}</span>}
+            {f.type === 'images' ? <img src={f.url} alt={f.name} /> : <span>🎞 {f.name}</span>}
             <div style={{ fontSize: 12 }}>
-              <code>{f.name}</code>
-              <button className="btn" onClick={() => { navigator.clipboard?.writeText(f.url); setMsg && null; }}>复制URL</button>
+              <span className="media-name"><code>{f.name}</code></span>
+              <button className="btn" onClick={() => { navigator.clipboard?.writeText(f.url).then(() => { setCopied(f.url); setTimeout(() => setCopied(null), 1500); }); }}>{copied === f.url ? '✓ 已复制' : '复制URL'}</button>
               {onUseCover && <button className="btn" onClick={() => onUseCover(f.url)}>设封面</button>}
               <button className="btn btn-danger" onClick={() => del(f.type, f.name)}>删</button>
             </div>
