@@ -241,6 +241,39 @@ app.put('/api/site-config', (req, res) => {
   }
 });
 
+// ─── 服务器部署配置（本地管理，免登录，供打包部署用）───
+const DEPLOY_CONFIG_FILE = path.join(BLOG_DIR, 'deploy-config.json');
+
+app.get('/api/deploy-config', (req, res) => {
+  try {
+    if (!fs.existsSync(DEPLOY_CONFIG_FILE)) return res.json({ ok: true, config: {} });
+    res.json({ ok: true, config: JSON.parse(fs.readFileSync(DEPLOY_CONFIG_FILE, 'utf-8')) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.put('/api/deploy-config', (req, res) => {
+  try {
+    const c = req.body?.config;
+    if (!c || typeof c !== 'object') return res.status(400).json({ ok: false, error: '缺少 config' });
+    const clean = {
+      server: String(c.server || '').slice(0, 200),
+      remote_dir: String(c.remote_dir || '').slice(0, 300),
+      domain: String(c.domain || '').slice(0, 200),
+      ssh_port: String(c.ssh_port || '22').slice(0, 10),
+    };
+    fs.writeFileSync(DEPLOY_CONFIG_FILE, JSON.stringify(clean, null, 2), 'utf-8');
+    res.json({ ok: true, config: clean });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ─── 静态托管媒体文件（/media/* → Blog/public/media/）───
+// 使后台媒体库的缩略图能正确加载（后台运行在独立端口，不依赖前台 3003）
+app.use('/media', express.static(MEDIA_DIR));
+
 // ─── 托管后台 UI（构建产物在 admin/admin-dist）───
 if (fs.existsSync(ADMIN_DIST)) {
   const adminHtml = path.join(ADMIN_DIST, 'admin.html');

@@ -250,11 +250,13 @@ function MediaView({ onUseCover }) {
 
 function SettingsView() {
   const [author, setAuthor] = useState({ name: '', role: '', bio: '', avatar: '', github: '', xiaohongshu: '', bilibili: '' });
+  const [deploy, setDeploy] = useState({ server: '', remote_dir: '', domain: '', ssh_port: '22' });
   const [msg, setMsg] = useState(null);
   useEffect(() => {
     fetch(`${API}/site-config`, { headers }).then((r) => r.json()).then((d) => { if (d.ok && d.config?.author) setAuthor(d.config.author); }).catch(() => {});
+    fetch(`${API}/deploy-config`, { headers }).then((r) => r.json()).then((d) => { if (d.ok && d.config) setDeploy(d.config); }).catch(() => {});
   }, []);
-  const save = async (e) => {
+  const saveAuthor = async (e) => {
     e.preventDefault();
     try {
       const r = await fetch(`${API}/site-config`, { method: 'PUT', headers, body: JSON.stringify({ author }) });
@@ -263,20 +265,39 @@ function SettingsView() {
       setMsg({ type: 'ok', text: '站点设置已保存' });
     } catch (e) { setMsg({ type: 'err', text: e.message }); }
   };
-  const set = (k) => (e) => setAuthor({ ...author, [k]: e.target.value });
+  const saveDeploy = async (e) => {
+    e.preventDefault();
+    try {
+      const r = await fetch(`${API}/deploy-config`, { method: 'PUT', headers, body: JSON.stringify({ config: deploy }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      setMsg({ type: 'ok', text: '部署配置已保存' });
+    } catch (e) { setMsg({ type: 'err', text: e.message }); }
+  };
+  const setA = (k) => (e) => setAuthor({ ...author, [k]: e.target.value });
+  const setD = (k) => (e) => setDeploy({ ...deploy, [k]: e.target.value });
   return (
     <div className="card">
       <h3 style={{ marginTop: 0 }}>站点设置</h3>
       {msg && <div className={`msg msg-${msg.type}`}>{msg.text}</div>}
-      <form onSubmit={save}>
-        <label>名称</label><input value={author.name} onChange={set('name')} />
-        <label>身份/角色</label><input value={author.role} onChange={set('role')} />
-        <label>简介</label><input value={author.bio} onChange={set('bio')} />
-        <label>头像 URL</label><input value={author.avatar} onChange={set('avatar')} />
-        <label>GitHub</label><input value={author.github} onChange={set('github')} />
-        <label>小红书</label><input value={author.xiaohongshu} onChange={set('xiaohongshu')} />
-        <label>B站</label><input value={author.bilibili} onChange={set('bilibili')} />
-        <button className="btn btn-primary" type="submit" style={{ marginTop: 12 }}>保存</button>
+      <form onSubmit={saveAuthor}>
+        <label>名称</label><input value={author.name} onChange={setA('name')} />
+        <label>身份/角色</label><input value={author.role} onChange={setA('role')} />
+        <label>简介</label><input value={author.bio} onChange={setA('bio')} />
+        <label>头像 URL</label><input value={author.avatar} onChange={setA('avatar')} />
+        <label>GitHub</label><input value={author.github} onChange={setA('github')} />
+        <label>小红书</label><input value={author.xiaohongshu} onChange={setA('xiaohongshu')} />
+        <label>B站</label><input value={author.bilibili} onChange={setA('bilibili')} />
+        <button className="btn btn-primary" type="submit" style={{ marginTop: 12 }}>保存站点设置</button>
+      </form>
+
+      <h3 style={{ marginTop: '2rem' }}>部署配置（服务器 SSH 同步）</h3>
+      <form onSubmit={saveDeploy}>
+        <label>SSH 地址（user@host）</label><input value={deploy.server} onChange={setD('server')} placeholder="root@example.com" />
+        <label>远程目录</label><input value={deploy.remote_dir} onChange={setD('remote_dir')} placeholder="/var/www/example.com" />
+        <label>域名</label><input value={deploy.domain} onChange={setD('domain')} placeholder="example.com" />
+        <label>SSH 端口</label><input value={deploy.ssh_port} onChange={setD('ssh_port')} placeholder="22" />
+        <button className="btn btn-primary" type="submit" style={{ marginTop: 12 }}>保存部署配置</button>
       </form>
     </div>
   );
