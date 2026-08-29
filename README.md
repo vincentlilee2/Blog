@@ -53,6 +53,27 @@ published: true     # false 则不发布
 
 > **本博客无需后台管理系统**——文章的发布就是「在 `src/content/blog/` 新建一个 `.md` 文件」。构建即发布，Git 即数据库：写文件 → `npm run build` → 上传 `dist/`，文章即上线。如需网页式写作后台，可自建（参考 [DEPLOY.md](./DEPLOY.md) 的自动同步脚本），或接入 MyCenter 生态的统一发布后台；但后台只是「写 `.md` 文件的网页封装」，并非博客运行所必需。
 
+### 用 Obsidian 写作（可选）
+
+如果你用 [Obsidian](https://obsidian.md) 管理笔记，可以把 Blog 的文章目录接入 Vault，直接在 Obsidian 里写作、双链、打标签，保存即写回原文件。
+
+**方式一：把整个 Blog 仓作为独立 Vault 打开**
+- Obsidian 菜单 `Open another vault` → 选择 Blog 仓库根目录即可。
+
+**方式二：软链进现有 Vault（推荐，写作与项目笔记分离）**
+- 在 Vault 内新建一个文件夹（如 `创作/blog`），用终端建软链指向文章目录：
+  ```bash
+  ln -s /path/to/Blog/src/content/blog "/path/to/YourVault/创作/blog"
+  ```
+- 重启或重载 Obsidian（`Cmd/Ctrl+R`），`创作/blog` 下即出现所有文章，可像普通笔记一样编辑。
+- 软链只是「视图入口」，文章真实文件仍在 `Blog/src/content/blog/`，Blog 仓库的 Git 跟踪不受影响。
+
+**注意事项**
+- 写作时**避免 Obsidian 的 `[[wikilink]]` 互链语法**——Astro 不识别，请用标准 Markdown 链接。
+- 编辑 frontmatter 建议用**源代码模式**，勿用 Properties 面板乱加字段（Blog 的 schema 为严格校验，多余字段会导致构建失败）。
+- 图片等附件：Obsidian 默认存于 Vault 的附件目录，发布前需将图片放到 `Blog/public/media/` 并在文中引用正确路径。
+- 自动发布：在 Obsidian 保存后，若已配置 fswatch + rsync 同步（见 [DEPLOY.md](./DEPLOY.md)），文章会按你的部署流程上线；软链对监听进程透明，无需额外配置。
+
 ### 构建静态站点
 
 ```bash
