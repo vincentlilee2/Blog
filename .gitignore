@@ -4,6 +4,7 @@ node_modules/
 # 构建缓存
 dist/
 .astro/
+admin/admin-dist/
 
 # 本地站点配置（含个人信息，不进仓库）
 site-config.json

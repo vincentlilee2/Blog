@@ -131,7 +131,49 @@ PUBLIC_SITE_URL="https://your-domain.example.com" npm run build
 
 ### 站点设置（名称/简介/头像/GitHub）
 
-通过 MyCenter 统一后台的「站点设置」配置，存于 `Blog/site-config.json`。开源仓库中不含该文件，首次运行使用默认值。
+通过本仓库自带的本地发布后台「站点设置」配置，存于 `Blog/site-config.json`（已被 `.gitignore` 忽略，不含在开源仓；首次运行使用默认值）。
+
+## 🖥️ 本地发布后台（可选，无鉴权）
+
+本仓库自带一个**本地发布后台**，提供网页界面写文章、传图片、配站点信息——无需命令行、无需登录。
+
+> ⚠️ **仅限本机使用，无任何登录鉴权，切勿暴露到公网（不要用 `0.0.0.0` 监听）。**
+
+### 启动
+
+```bash
+npm install
+npm run admin          # 启动发布后台 (默认 http://localhost:18792/admin)
+```
+
+打开 http://localhost:18792/admin 即可：
+
+- **文章**：新建 / 编辑 / 删除。新建时 **slug（文件名）留空会自动生成** `post-<时间戳>.md`，无需手填英文文件名
+- **媒体**：上传图片/视频/音频，自动存入 `public/media/`，可一键复制 URL 或插入正文、设为封面
+- **设置**：配置站点名称、简介、头像、GitHub 等
+
+保存文章后立即触发 `npm run build`，静态产物更新到 `dist/`；再按 [DEPLOY.md](./DEPLOY.md) 同步到你的服务器即可上线。
+
+### 开发模式（热更新前端）
+
+```bash
+npm run admin:dev      # Vite 开发服务器，改 UI 即时刷新
+npm run admin:build    # 构建后台前端到 admin/admin-dist/（已由 npm run admin 自动托管）
+```
+
+### 目录结构
+
+```
+Blog/admin/
+├── server.js              # Express 服务（无鉴权，文章/媒体/站点配置 API + 托管 UI）
+├── vite.admin.config.js   # 后台前端构建配置
+├── admin.html             # 后台入口
+├── src/
+│   ├── main.jsx
+│   ├── AdminApp.jsx       # 发布后台 React 组件
+│   └── admin.css
+└── admin-dist/            # 构建产物（git 忽略）
+```
 
 ## 📜 开源协议
 

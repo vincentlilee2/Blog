@@ -7,10 +7,14 @@
   "scripts": {
     "dev": "astro dev --port 3003",
     "build": "astro build",
-    "preview": "astro preview --port 3003"
+    "preview": "astro preview --port 3003",
+    "admin:dev": "vite --config admin/vite.admin.config.js",
+    "admin:build": "vite build --config admin/vite.admin.config.js",
+    "admin": "node admin/server.js"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",
-    "astro": "^5.0.0"
+    "astro": "^5.0.0",
+    "express": "^4.22.2"
   }
 }

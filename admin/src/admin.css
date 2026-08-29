@@ -1,0 +1,30 @@
+:root {
+  --fg: #1c1c1e; --muted: #8a8a8e; --border: #e6e6e3; --bg: #fafaf8; --card: #fff;
+  --accent: #c8643c; --danger: #d9534f;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", sans-serif; background: var(--bg); color: var(--fg); }
+.admin-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+.admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 20px; }
+.admin-title { font-size: 1.4rem; }
+.admin-nav button { background: none; border: none; font-size: 1rem; padding: 6px 12px; cursor: pointer; color: var(--muted); border-radius: 8px; }
+.admin-nav button.active { color: var(--fg); background: #f0ece6; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+label { display: block; font-size: .85rem; color: var(--muted); margin: 12px 0 4px; }
+input, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; font-family: inherit; }
+.row { display: flex; gap: 14px; }
+.row > div { flex: 1; }
+.btn { background: #f0ece6; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: .9rem; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-danger { background: #fff; color: var(--danger); border-color: var(--danger); }
+.msg { padding: 8px 12px; border-radius: 8px; margin: 10px 0; font-size: .9rem; }
+.msg-ok { background: #e8f5e9; color: #2e7d32; }
+.msg-err { background: #fdecea; color: var(--danger); }
+.post-list { list-style: none; }
+.post-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.post-item h4 { font-size: 1rem; }
+.post-item small { color: var(--muted); }
+.badge { background: #eee; color: #888; font-size: .7rem; padding: 1px 6px; border-radius: 6px; margin-left: 6px; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
+.media-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: .8rem; }
+.dropzone { background: #fcfbf9; }
