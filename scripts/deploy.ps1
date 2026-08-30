@@ -2,7 +2,7 @@
 # 记忆花园 (MemoryGarden) Blog 一键部署脚本（Windows / PowerShell）
 #
 # 多用户子站模式：每个人把自己的 Blog 构建后上传到服务器的专属子目录，
-# 如 blog.mgarden.org.cn/wesley。无需登录注册，SSH key 即身份。
+# 如 https://your-domain.com/wesley。无需登录注册，SSH key 即身份。
 #
 # 用法：
 #   1. 把下面「配置区」改成你自己的（服务器、子站路径、SSH key）
@@ -13,10 +13,10 @@
 # 前置：Windows 10 1803+（自带 tar / ssh / scp）；Node.js 20+
 # ─────────────────────────────────────────────────────────────
 param(
-  [string]$Server    = "root@blog.mgarden.org.cn",  # SSH 服务器
-  [string]$RemoteDir = "/var/www/blog.mgarden.org.cn", # 站点根目录（服务器上）
+  [string]$Server    = "user@your-server.com",  # SSH 服务器（改成你自己的）
+  [string]$RemoteDir = "/var/www/your-domain.com", # 站点根目录（服务器上）
   [string]$SubPath   = "/wesley",      # 你的子站路径（对应你的用户名）
-  [string]$Domain    = "blog.mgarden.org.cn", # 域名（RSS 地址用）
+  [string]$Domain    = "your-domain.com", # 域名（RSS 地址用）
   [string]$SshKey    = "$env:USERPROFILE\.ssh\id_ed25519" # 你的私钥
 )
 

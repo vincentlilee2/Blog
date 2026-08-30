@@ -96,7 +96,7 @@ https://your-domain.com/wesley/    ← 用户 B
 ```
 
 - 每人 clone 本仓库，构建时注入自己的子路径：`PUBLIC_BASE="/wesley" npm run build`（`astro.config.mjs` 已支持 `PUBLIC_BASE` 环境变量，不设则部署在根路径）
-- 每人把构建产物上传到服务器专属子目录（如 `/var/www/blog.mgarden.org.cn/wesley/`）；`scripts/deploy.ps1` 是 Windows 一键部署脚本（tar+ssh 管道，无需 rsync）
+- 每人把构建产物上传到服务器专属子目录（如 `/var/www/example.com/wesley/`）；`scripts/deploy.ps1` 是 Windows 一键部署脚本（tar+ssh 管道，无需 rsync）
 - 本地发布后台同样支持：`admin/server-config.json` 写 `{"publicBase": "/wesley"}`，上传的媒体 URL 自动带前缀（`/wesley/media/...`）
 - 站点根目录放一个导航页（列出各子站入口），nginx 的 `try_files` 无需改动即支持子目录
 - 服务器安全：每个用户的 SSH key 建议用 `authorized_keys` 限制只能写入自己的目录
