@@ -10,7 +10,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -157,6 +157,23 @@ const MIME_SUBDIR = {
 };
 const MEDIA_EXT = /\.(jpe?g|png|gif|webp|svg|mp4|webm|mov|m4v|mp3|wav|m4a|ogg|flac)$/i;
 
+// ─── 视频缩略图：ffmpeg 提取首帧 → media/videos/thumbs/<name>.jpg ───
+function makeVideoThumb(videoFile) {
+  try {
+    const dir = path.dirname(videoFile); // .../media/videos
+    const base = path.basename(videoFile).replace(/\.[^.]+$/, '');
+    const thumbDir = path.join(dir, 'thumbs');
+    const thumbFile = path.join(thumbDir, `${base}.jpg`);
+    if (!fs.existsSync(thumbFile)) {
+      fs.mkdirSync(thumbDir, { recursive: true });
+      spawnSync('ffmpeg', ['-y', '-i', videoFile, '-frames:v', '1', '-vf', 'scale=320:-2', '-q:v', '4', thumbFile], { timeout: 20000 });
+    }
+    return fs.existsSync(thumbFile) ? `/media/videos/thumbs/${base}.jpg` : null;
+  } catch {
+    return null;
+  }
+}
+
 app.post('/api/media/upload', (req, res) => {
   try {
     const { name, mime, data } = req.body || {};
@@ -169,7 +186,8 @@ app.post('/api/media/upload', (req, res) => {
     fs.mkdirSync(dir, { recursive: true });
     const final = fs.existsSync(path.join(dir, clean)) ? `${Date.now()}-${clean}` : clean;
     fs.writeFileSync(path.join(dir, final), Buffer.from(data, 'base64'));
-    res.json({ ok: true, url: `/media/${sub}/${final}`, name: final, type: sub });
+    const thumb = sub === 'videos' ? makeVideoThumb(path.join(dir, final)) : null;
+    res.json({ ok: true, url: `/media/${sub}/${final}`, name: final, type: sub, thumb });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -186,7 +204,7 @@ app.get('/api/media/list', (req, res) => {
         const file = path.join(dir, f);
         if (!fs.statSync(file).isFile()) continue;
         const st = fs.statSync(file);
-        out.push({ name: f, url: `/media/${sub}/${f}`, type: sub, size: st.size, mtime: st.mtimeMs });
+        out.push({ name: f, url: `/media/${sub}/${f}`, type: sub, size: st.size, mtime: st.mtimeMs, thumb: sub === 'videos' ? makeVideoThumb(file) : null });
       }
     }
     out.sort((a, b) => b.mtime - a.mtime);

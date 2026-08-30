@@ -5,6 +5,86 @@ const API = '/api';
 // 无鉴权：本地发布后台，所有请求不带 token
 const headers = { 'Content-Type': 'application/json' };
 
+const MAX_IMG = 5 * 1024 * 1024;    // 图片压缩后上限 5MB
+const MAX_VIDEO = 100 * 1024 * 1024; // 视频上限 100MB
+
+// ─── 图片压缩：缩放最长边 ≤2048，转 webp 渐进降质至 ≤5MB ───
+async function compressImage(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const MAX_EDGE = 2048;
+    let { width, height } = bmp;
+    if (Math.max(width, height) > MAX_EDGE) {
+      const k = MAX_EDGE / Math.max(width, height);
+      width = Math.max(1, Math.round(width * k));
+      height = Math.max(1, Math.round(height * k));
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, width, height);
+    if (bmp.close) bmp.close();
+    let last = null;
+    for (const q of [0.85, 0.7, 0.55, 0.4]) {
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/webp', q));
+      if (!blob) break;
+      last = blob;
+      if (blob.size <= MAX_IMG) return blob;
+    }
+    return last || file;
+  } catch {
+    return file; // 解码失败（如超大图）→ 原样返回
+  }
+}
+
+// ─── 轻量 Markdown 渲染（预览用，先转义防注入）───
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function inlineMd(s) {
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, '<img src="$2" alt="$1" loading="lazy" />');
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[+i])}</code>`);
+  return s;
+}
+function renderMarkdown(md) {
+  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
+  let html = '', inCode = false, codeBuf = [];
+  const flushCode = () => {
+    if (codeBuf.length) { html += `<pre><code>${esc(codeBuf.join('\n'))}</code></pre>`; codeBuf = []; }
+  };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (line.startsWith('```')) {
+      if (inCode) { inCode = false; flushCode(); } else inCode = true;
+      continue;
+    }
+    if (inCode) { codeBuf.push(raw); continue; }
+    if (!line.trim()) { html += '<p></p>'; continue; }
+    if (/^#{1,4}\s/.test(line)) {
+      const lv = line.match(/^(#{1,4})\s/)[1].length;
+      html += `<h${lv}>${inlineMd(line.replace(/^#{1,4}\s/, ''))}</h${lv}>`;
+    } else if (/^(-{3,}|\*{3,})$/.test(line)) {
+      html += '<hr>';
+    } else if (/^>\s?/.test(line)) {
+      html += `<blockquote>${inlineMd(line.replace(/^>\s?/, ''))}</blockquote>`;
+    } else if (/^[-*]\s/.test(line)) {
+      html += `<li>${inlineMd(line.replace(/^[-*]\s/, ''))}</li>`;
+    } else if (/^\d+\.\s/.test(line)) {
+      html += `<li>${inlineMd(line.replace(/^\d+\.\s/, ''))}</li>`;
+    } else {
+      html += `<p>${inlineMd(line)}</p>`;
+    }
+  }
+  flushCode();
+  html = html.replace(/(?:<li>.*?<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`);
+  return html;
+}
+
 function AdminView() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +97,8 @@ function AdminView() {
   const [busyUpload, setBusyUpload] = useState(false);
   const [uploadErr, setUploadErr] = useState('');
   const [dragover, setDragover] = useState(false);
+  const [coverHelp, setCoverHelp] = useState(false);
+  const [preview, setPreview] = useState(false);
   const [view, setView] = useState('posts');
   const contentRef = useRef(null);
 
@@ -34,6 +116,11 @@ function AdminView() {
   const save = async (e) => {
     e.preventDefault();
     setMsg(null);
+    const blobs = (form.content.match(/!\[[^\]]*\]\(blob:[^)]+\)/g) || []);
+    if (blobs.length) {
+      setMsg({ type: 'err', text: `正文中有 ${blobs.length} 张图片仅本地显示（未上传服务器），发布后不可见。请移除或更换后再保存。` });
+      return;
+    }
     try {
       const r = await fetch(`${API}/blog/posts`, {
         method: 'POST',
@@ -58,11 +145,41 @@ function AdminView() {
     if (data.ok) loadPosts(); else alert(data.error);
   };
 
-  // 上传媒体文件 → 自动插入正文光标处
+  // 上传媒体文件 → 压缩后上传 → 自动插入正文光标处
   const uploadFile = async (file) => {
     if (!file) return;
     setBusyUpload(true); setUploadErr('');
+    const insert = (url, tip) => {
+      const et = contentRef.current;
+      const t = et ? et.value : (form.content || '');
+      const ins = `\n![](${url})\n`;
+      setForm((f) => ({ ...f, content: t + ins }));
+      if (tip) setMsg({ type: 'ok', text: tip });
+    };
     try {
+      const isVideo = file.type.startsWith('video/');
+      // 视频超 100MB：仅本地显示
+      if (isVideo && file.size > MAX_VIDEO) {
+        insert(URL.createObjectURL(file), '⚠️ 视频超过 100MB，无法上传服务器，仅本地预览显示');
+        setUploadErr('视频过大（>100MB），仅本地显示，发布后该视频不可见');
+        return;
+      }
+      // 图片：压缩（gif 动图跳过，保留动画）
+      let upName = file.name, upMime = file.type;
+      if (!isVideo && file.type !== 'image/gif') {
+        const compressed = await compressImage(file);
+        if (compressed !== file && compressed.size < file.size) {
+          upName = file.name.replace(/\.[^.]+$/, '') + '.webp';
+          upMime = 'image/webp';
+          file = compressed;
+          // 压缩后仍超 5MB：仅本地显示
+          if (compressed.size > MAX_IMG) {
+            insert(URL.createObjectURL(compressed), '⚠️ 图片压缩后仍超过 5MB，仅本地预览显示，发布后不可见');
+            setUploadErr('图片过大（压缩后仍 >5MB），仅本地显示，建议换用较小的图片');
+            return;
+          }
+        }
+      }
       const b64 = await new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result).split(',')[1]);
@@ -71,16 +188,12 @@ function AdminView() {
       });
       const r = await fetch(`${API}/media/upload`, {
         method: 'POST', headers,
-        body: JSON.stringify({ name: file.name, mime: file.type, data: b64 }),
+        body: JSON.stringify({ name: upName, mime: upMime, data: b64 }),
       });
       const data = await r.json();
       if (!data.ok) throw new Error(data.error || '上传失败');
       const url = data.url;
-      const et = contentRef.current;
-      const t = et ? et.value : (form.content || '');
-      const ins = `\n![](${url})\n`;
-      setForm((f) => ({ ...f, content: t + ins }));
-      setMsg({ type: 'ok', text: `已上传并插入：${url}` });
+      insert(url, `已上传并插入：${url}`);
     } catch (e) {
       setUploadErr(e.message);
     } finally { setBusyUpload(false); }
@@ -100,8 +213,14 @@ function AdminView() {
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
+  // 解析正文中的 Markdown 图片 ![alt](url)，用于输入框下方直接预览
+  const contentImages = (form.content.match(/!\[[^\]]*\]\([^)\s]+\)/g) || [])
+    .map((m) => { const mm = m.match(/!\[([^\]]*)\]\(([^)\s]+)\)/); return mm ? { alt: mm[1], url: mm[2] } : null; })
+    .filter(Boolean)
+    .slice(0, 8);
+
   return (
-    <div className="admin-wrap">
+    <div className={editing !== null ? 'admin-wrap admin-wrap--editor' : 'admin-wrap'}>
       <header className="admin-header">
         <h1 className="admin-title">📝 Blog 发布后台</h1>
         <nav className="admin-nav">
@@ -117,12 +236,25 @@ function AdminView() {
       {view === 'posts' && (
         <>
           {editing !== null && (
-            <form className="card" onSubmit={save} style={{ marginBottom: '2rem' }}>
-              <h3 style={{ marginTop: 0 }}>{editing ? `编辑：${editing}` : '新建文章'}</h3>
-              <div className="row">
+            <form className="card editor-card" onSubmit={save} style={{ marginBottom: '2rem' }}>
+              <div className="editor-toolbar">
+                <h3 style={{ margin: 0 }}>{editing ? `编辑：${editing}` : '✍️ 新建文章'}</h3>
+                <label className="publish-toggle" title="保存前可随时切换">
+                  <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> 发布
+                </label>
+                <div className="editor-toolbar-actions">
+                  <button className="btn" type="button" onClick={() => { setEditing(null); setView('posts'); }}>取消</button>
+                  <button className="btn btn-primary" type="submit">保存</button>
+                </div>
+              </div>
+
+              <input className="editor-title" value={form.title} onChange={set('title')} placeholder="输入文章标题…" required />
+              <input className="editor-desc" value={form.description} onChange={set('description')} placeholder="一句话摘要（可选）" />
+
+              <div className="row editor-meta">
                 {editing && (
                   <div>
-                    <label>slug（文件名，不可改）</label>
+                    <label>slug（不可改）</label>
                     <input value={form.slug} disabled />
                   </div>
                 )}
@@ -130,43 +262,66 @@ function AdminView() {
                   <label>日期</label>
                   <input type="date" value={form.date} onChange={set('date')} />
                 </div>
-              </div>
-              <label>标题</label>
-              <input value={form.title} onChange={set('title')} placeholder="文章标题" required />
-              <label>摘要</label>
-              <input value={form.description} onChange={set('description')} placeholder="一句话摘要" />
-              <div className="row">
                 <div>
                   <label>标签（逗号分隔）</label>
                   <input value={form.tags} onChange={set('tags')} placeholder="技术, AI" />
                 </div>
                 <div>
                   <label>封面图</label>
-                  <input value={form.cover} onChange={set('cover')} placeholder="留空" />
+                  <div className="cover-field">
+                    <input value={form.cover} onChange={set('cover')} placeholder="留空" />
+                    <button
+                      type="button"
+                      className={`cover-help${coverHelp ? ' open' : ''}`}
+                      onClick={() => setCoverHelp((v) => !v)}
+                      aria-label="封面图使用说明"
+                    >?</button>
+                    <div className={`cover-tip${coverHelp ? ' show' : ''}`} role="tooltip">
+                      <b>封面图怎么用</b>
+                      <ol>
+                        <li>填一张图片的 URL：媒体库上传后点「复制URL」，或任意外部图片链接；留空则不显示</li>
+                        <li>保存后，博客<b>首页/列表</b>的文章卡片顶部会显示这张封面图</li>
+                        <li>文章<b>详情页</b>标题上方会显示封面大图</li>
+                      </ol>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <label>正文（Markdown）</label>
+
+              <div className="content-label-row">
+                <label style={{ margin: 0 }}>正文（Markdown）</label>
+                <div className="editor-mode">
+                  <button type="button" className={!preview ? 'active' : ''} onClick={() => setPreview(false)}>编辑</button>
+                  <button type="button" className={preview ? 'active' : ''} onClick={() => setPreview(true)}>预览</button>
+                </div>
+              </div>
               <div
                 className={`dropzone${dragover ? ' dragover' : ''}`}
                 onDrop={(e) => { setDragover(false); onDrop(e); }}
                 onDragOver={(e) => { e.preventDefault(); setDragover(true); }}
                 onDragLeave={() => setDragover(false)}
-                style={{ border: '1px dashed #ccc', borderRadius: 8, padding: 8, marginBottom: 8 }}
               >
-                <textarea ref={contentRef} value={form.content} onChange={set('content')} rows={14} style={{ width: '100%', fontFamily: 'monospace' }} />
-                <p style={{ fontSize: 12, color: '#888' }}>拖拽图片到此处或点击下方按钮上传并插入正文</p>
-                <input type="file" onChange={onPick} disabled={busyUpload} />
-                {busyUpload && <span> 上传中…</span>}
-                {uploadErr && <span className="msg msg-err"> {uploadErr}</span>}
-              </div>
-              <div className="row">
-                <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> 发布
-                </label>
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <button className="btn btn-primary" type="submit">保存</button>
-                <button className="btn" type="button" onClick={() => { setEditing(null); setView('posts'); }} style={{ marginLeft: 8 }}>取消</button>
+                {preview ? (
+                  <div className="preview-pane" dangerouslySetInnerHTML={{ __html: renderMarkdown(form.content) }} />
+                ) : (
+                  <textarea ref={contentRef} className="editor-content" value={form.content} onChange={set('content')} placeholder="# 从这里开始写作…" />
+                )}
+                <div className="dropzone-bar">
+                  <input type="file" onChange={onPick} disabled={busyUpload} />
+                  {busyUpload && <span> 上传中…</span>}
+                  {uploadErr && <span className="msg msg-err"> {uploadErr}</span>}
+                  <span className="dropzone-hint">拖拽图片到此处，或选择文件上传并插入正文</span>
+                </div>
+                {contentImages.length > 0 && (
+                  <div className="content-images">
+                    {contentImages.map((img, i) => (
+                      <div className="content-images__item" key={i}>
+                        <img src={img.url} alt={img.alt} />
+                        <span title={img.url}>{img.url}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </form>
           )}
@@ -238,7 +393,7 @@ function MediaView({ onUseCover }) {
       <div className="media-grid">
         {files.map((f) => (
           <div key={f.url} className="media-item">
-            {f.type === 'images' ? <img src={f.url} alt={f.name} /> : <span>🎞 {f.name}</span>}
+            {f.type === 'images' ? <img src={f.url} alt={f.name} /> : f.thumb ? <img src={f.thumb} alt={f.name} /> : <span>🎞 {f.name}</span>}
             <div style={{ fontSize: 12 }}>
               <span className="media-name"><code>{f.name}</code></span>
               <button className="btn" onClick={() => { navigator.clipboard?.writeText(f.url).then(() => { setCopied(f.url); setTimeout(() => setCopied(null), 1500); }); }}>{copied === f.url ? '✓ 已复制' : '复制URL'}</button>
