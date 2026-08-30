@@ -20,6 +20,14 @@ const ADMIN_DIST = path.join(__dirname, 'admin-dist');
 const MEDIA_DIR = path.join(BLOG_DIR, 'public', 'media');
 const SITE_CONFIG = path.join(BLOG_DIR, 'site-config.json');
 
+// 多用户子站 base 前缀（如 /vincent、/wesley）：优先环境变量，其次 admin/server-config.json
+// 媒体 URL 据此生成（/vincent/media/...），子路径部署时文章里的图片才能正确加载
+let PUBLIC_BASE = '';
+try {
+  PUBLIC_BASE = JSON.parse(fs.readFileSync(path.join(__dirname, 'server-config.json'), 'utf8')).publicBase || '';
+} catch { /* 无配置文件则使用环境变量或默认空 */ }
+PUBLIC_BASE = (process.env.PUBLIC_BASE ?? (PUBLIC_BASE || '')).replace(/\/+$/, '');
+
 // ─── Blog 自动构建（保存/删除后触发，异步非阻塞 + 并发锁）───
 let buildRunning = false;
 let buildPending = false;
@@ -168,7 +176,7 @@ function makeVideoThumb(videoFile) {
       fs.mkdirSync(thumbDir, { recursive: true });
       spawnSync('ffmpeg', ['-y', '-i', videoFile, '-frames:v', '1', '-vf', 'scale=320:-2', '-q:v', '4', thumbFile], { timeout: 20000 });
     }
-    return fs.existsSync(thumbFile) ? `/media/videos/thumbs/${base}.jpg` : null;
+    return fs.existsSync(thumbFile) ? `${PUBLIC_BASE}/media/videos/thumbs/${base}.jpg` : null;
   } catch {
     return null;
   }
@@ -187,7 +195,7 @@ app.post('/api/media/upload', (req, res) => {
     const final = fs.existsSync(path.join(dir, clean)) ? `${Date.now()}-${clean}` : clean;
     fs.writeFileSync(path.join(dir, final), Buffer.from(data, 'base64'));
     const thumb = sub === 'videos' ? makeVideoThumb(path.join(dir, final)) : null;
-    res.json({ ok: true, url: `/media/${sub}/${final}`, name: final, type: sub, thumb });
+    res.json({ ok: true, url: `${PUBLIC_BASE}/media/${sub}/${final}`, name: final, type: sub, thumb });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -204,7 +212,7 @@ app.get('/api/media/list', (req, res) => {
         const file = path.join(dir, f);
         if (!fs.statSync(file).isFile()) continue;
         const st = fs.statSync(file);
-        out.push({ name: f, url: `/media/${sub}/${f}`, type: sub, size: st.size, mtime: st.mtimeMs, thumb: sub === 'videos' ? makeVideoThumb(file) : null });
+        out.push({ name: f, url: `${PUBLIC_BASE}/media/${sub}/${f}`, type: sub, size: st.size, mtime: st.mtimeMs, thumb: sub === 'videos' ? makeVideoThumb(file) : null });
       }
     }
     out.sort((a, b) => b.mtime - a.mtime);
@@ -291,6 +299,10 @@ app.put('/api/deploy-config', (req, res) => {
 // ─── 静态托管媒体文件（/media/* → Blog/public/media/）───
 // 使后台媒体库的缩略图能正确加载（后台运行在独立端口，不依赖前台 3003）
 app.use('/media', express.static(MEDIA_DIR));
+// 多用户子站模式：同时托管带 base 前缀的媒体路径（admin 预览用 /vincent/media/...）
+if (PUBLIC_BASE) {
+  app.use(`${PUBLIC_BASE}/media`, express.static(MEDIA_DIR));
+}
 
 // ─── 托管后台 UI（构建产物在 admin/admin-dist）───
 if (fs.existsSync(ADMIN_DIST)) {

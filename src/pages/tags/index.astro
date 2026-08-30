@@ -4,6 +4,7 @@ import Layout from '../../layouts/Layout.astro';
 
 const posts = (await getCollection('blog')).filter((p) => p.data.published);
 const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
 ---
 
 <Layout title="标签 · MemoryGarden Blog">
@@ -11,7 +12,7 @@ const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
   <div class="tag-cloud" style="font-size:1rem;">
     {
       tags.map((tag) => (
-        <a class="tag" href={`/tags/${encodeURIComponent(tag)}`}>
+        <a class="tag" href={`${B}tags/${encodeURIComponent(tag)}`}>
           #{tag}
         </a>
       ))

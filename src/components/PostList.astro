@@ -11,6 +11,7 @@ const fmt = (d) =>
     month: 'long',
     day: 'numeric',
   });
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
 ---
 
 <section class="post-list">
@@ -18,7 +19,7 @@ const fmt = (d) =>
     posts.map((post) => (
       <article class="post-card">
         {post.data.cover && (
-          <a href={`/posts/${post.id}`}>
+          <a href={`${B}posts/${post.id}`}>
             <img class="post-card__cover" src={post.data.cover} alt={post.data.title} loading="lazy" />
           </a>
         )}
@@ -29,12 +30,12 @@ const fmt = (d) =>
           )}
         </div>
         <h2>
-          <a href={`/posts/${post.id}`}>{post.data.title}</a>
+          <a href={`${B}posts/${post.id}`}>{post.data.title}</a>
         </h2>
         <p class="post-card__desc">{post.data.description}</p>
         <div class="tag-cloud">
           {post.data.tags.map((tag) => (
-            <a class="tag" href={`/tags/${encodeURIComponent(tag)}`}>
+            <a class="tag" href={`${B}tags/${encodeURIComponent(tag)}`}>
               #{tag}
             </a>
           ))}

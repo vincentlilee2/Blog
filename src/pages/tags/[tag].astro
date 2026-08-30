@@ -21,6 +21,7 @@ const fmt = (d) =>
     month: 'long',
     day: 'numeric',
   });
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
 ---
 
 <Layout title={`#${tag} · MemoryGarden Blog`}>
@@ -33,17 +34,17 @@ const fmt = (d) =>
             <time datetime={post.data.date.toISOString()}>{fmt(post.data.date)}</time>
           </div>
           <h2>
-            <a href={`/posts/${post.id}`}>{post.data.title}</a>
+            <a href={`${B}posts/${post.id}`}>{post.data.title}</a>
           </h2>
           <p class="post-card__desc">{post.data.description}</p>
           <div class="tag-cloud">
             {post.data.tags.map((t) => (
-              <a class="tag" href={`/tags/${encodeURIComponent(t)}`}>#{t}</a>
+              <a class="tag" href={`${B}tags/${encodeURIComponent(t)}`}>#{t}</a>
             ))}
           </div>
         </article>
       ))
     }
   </section>
-  <p style="margin-top:2rem;"><a href="/tags" class="tag">← 所有标签</a></p>
+  <p style="margin-top:2rem;"><a href={`${B}tags`} class="tag">← 所有标签</a></p>
 </Layout>

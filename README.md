@@ -86,6 +86,21 @@ npm run preview     # 本地预览构建产物
 
 本项目是纯静态站点，可托管到任意支持静态文件的平台（nginx、GitHub Pages、Vercel、Cloudflare Pages 等）。
 
+### 多用户子站模式（多人共用一台服务器）
+
+支持多人在**同一台服务器**上各自发布博客，无需注册登录（SSH key 即身份），每人一个子路径：
+
+```
+https://your-domain.com/vincent/   ← 用户 A
+https://your-domain.com/wesley/    ← 用户 B
+```
+
+- 每人 clone 本仓库，构建时注入自己的子路径：`PUBLIC_BASE="/wesley" npm run build`（`astro.config.mjs` 已支持 `PUBLIC_BASE` 环境变量，不设则部署在根路径）
+- 每人把构建产物上传到服务器专属子目录（如 `/var/www/blog.mgarden.org.cn/wesley/`）；`scripts/deploy.ps1` 是 Windows 一键部署脚本（tar+ssh 管道，无需 rsync）
+- 本地发布后台同样支持：`admin/server-config.json` 写 `{"publicBase": "/wesley"}`，上传的媒体 URL 自动带前缀（`/wesley/media/...`）
+- 站点根目录放一个导航页（列出各子站入口），nginx 的 `try_files` 无需改动即支持子目录
+- 服务器安全：每个用户的 SSH key 建议用 `authorized_keys` 限制只能写入自己的目录
+
 最简 nginx 部署示例：
 
 ```nginx

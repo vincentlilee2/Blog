@@ -8,6 +8,8 @@ admin/admin-dist/
 
 # 本地站点配置（含个人信息，不进仓库）
 site-config.json
+# 多用户子站 base 前缀（个人部署路径，不进仓库）
+admin/server-config.json
 # 部署配置（含服务器 IP / 域名，私密，不进仓库）
 deploy-config.json
 

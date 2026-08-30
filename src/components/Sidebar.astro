@@ -40,6 +40,7 @@ const monthLabel = (key) => {
   const [y, m] = key.split('-');
   return `${y}年${Number(m)}月`;
 };
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
 ---
 
 <aside class="sidebar">
@@ -77,7 +78,7 @@ const monthLabel = (key) => {
       {
         months.map(([key, count]) => (
           <li>
-            <a href={`/archive#${key}`}>{monthLabel(key)}</a>
+            <a href={`${B}archive#${key}`}>{monthLabel(key)}</a>
             <span class="side-count">{count}</span>
           </li>
         ))
@@ -91,7 +92,7 @@ const monthLabel = (key) => {
             {
               latestMonthPosts.map((p) => (
                 <li>
-                  <a href={`/posts/${p.id}`}>{p.data.title}</a>
+                  <a href={`${B}posts/${p.id}`}>{p.data.title}</a>
                 </li>
               ))
             }
@@ -107,7 +108,7 @@ const monthLabel = (key) => {
     <div class="side-tags">
       {
         tags.map(([tag, count]) => (
-          <a class="tag" href={`/tags/${encodeURIComponent(tag)}`}>
+          <a class="tag" href={`${B}tags/${encodeURIComponent(tag)}`}>
             #{tag}<span class="side-count">{count}</span>
           </a>
         ))
@@ -117,6 +118,6 @@ const monthLabel = (key) => {
 
   <!-- RSS 订阅 -->
   <div class="side-card side-rss">
-    <a class="side-link" href="/rss.xml" target="_blank" rel="noopener">📡 RSS 订阅</a>
+    <a class="side-link" href={`${B}rss.xml`} target="_blank" rel="noopener">📡 RSS 订阅</a>
   </div>
 </aside>

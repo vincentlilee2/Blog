@@ -26,6 +26,7 @@ const monthLabel = (key) => {
   const [y, m] = key.split('-');
   return `${y}年${Number(m)}月`;
 };
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
 ---
 
 <Layout title="归档 · MemoryGarden Blog">
@@ -42,7 +43,7 @@ const monthLabel = (key) => {
                 list.map((p) => (
                   <li>
                     <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
-                    <a href={`/posts/${p.id}`}>{p.data.title}</a>
+                    <a href={`${B}posts/${p.id}`}>{p.data.title}</a>
                   </li>
                 ))
               }

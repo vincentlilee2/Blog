@@ -15,7 +15,7 @@ export async function GET(context: APIContext) {
       title: post.data.title,
       description: post.data.description,
       pubDate: post.data.date,
-      link: `/posts/${post.id}/`,
+      link: `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}posts/${post.id}/`,
     })),
     customData: '<language>zh-cn</language>',
   });
