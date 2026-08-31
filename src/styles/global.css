@@ -403,6 +403,16 @@ main { padding-bottom: 4rem; }
 }
 
 /* 个人简介 */
+.side-about__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.side-about__link:hover {
+  background: var(--bg-hover, rgba(128, 128, 128, 0.08));
+}
 .side-about__top {
   display: flex;
   align-items: center;

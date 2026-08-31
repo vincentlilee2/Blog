@@ -226,8 +226,9 @@ function AdminView() {
         <nav className="admin-nav">
           <button className={view === 'posts' ? 'active' : ''} onClick={() => setView('posts')}>文章</button>
           <button className={view === 'media' ? 'active' : ''} onClick={() => setView('media')}>媒体</button>
+          <button className={view === 'card' ? 'active' : ''} onClick={() => setView('card')}>名片</button>
           <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>设置</button>
-          <a href="http://localhost:3003/" className="nav-admin-home" title="返回博客首页">← 返回博客</a>
+          <a href="http://localhost:3003/vincent/" className="nav-admin-home" title="返回博客首页">← 返回博客</a>
         </nav>
       </header>
 
@@ -351,6 +352,7 @@ function AdminView() {
       )}
 
       {view === 'media' && <MediaView onUseCover={(url) => setForm({ ...form, cover: url })} />}
+      {view === 'card' && <CardView />}
       {view === 'settings' && <SettingsView />}
     </div>
   );
@@ -407,6 +409,206 @@ function MediaView({ onUseCover }) {
   );
 }
 
+// 名片主题色（与 card/index.astro 的 data-theme 一一对应）
+const THEMES = [
+  { id: 'garden', name: '记忆花园', bg: '#0d2318', accent: '#c9a961' },
+  { id: 'ocean', name: '深海商务蓝', bg: '#0a1c30', accent: '#7ea8d8' },
+  { id: 'night', name: '黑金奢华', bg: '#0d0d10', accent: '#d4af37' },
+  { id: 'minimal', name: '极简白', bg: '#faf8f4', accent: '#1f2937' },
+  { id: 'wine', name: '典雅酒红', bg: '#241018', accent: '#d98e73' },
+  { id: 'violet', name: '科技紫', bg: '#161030', accent: '#a78bfa' },
+];
+
+function CardView() {
+  const [author, setAuthor] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [busyUp, setBusyUp] = useState(false);
+  const [busyExp, setBusyExp] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/site-config`, { headers }).then((r) => r.json()).then((d) => {
+      if (d.ok && d.config?.author) setAuthor(d.config.author);
+    }).catch(() => {});
+  }, []);
+
+  if (!author) return <div className="card"><h3 style={{ marginTop: 0 }}>电子名片</h3><p>加载中…</p></div>;
+
+  const card = author.card || {};
+  const projects = Array.isArray(card.projects) ? card.projects : [];
+  const setCard = (k) => (e) => setAuthor({ ...author, card: { ...card, [k]: e.target.value } });
+  const setProj = (i) => (k) => (e) => {
+    const list = projects.map((p, idx) => (idx === i ? { ...p, [k]: e.target.value } : p));
+    setAuthor({ ...author, card: { ...card, projects: list } });
+  };
+  const addProj = () => setAuthor({ ...author, card: { ...card, projects: [...projects, { name: '', desc: '', url: '' }] } });
+  const delProj = (i) => setAuthor({ ...author, card: { ...card, projects: projects.filter((_, idx) => idx !== i) } });
+
+  const uploadAvatar = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    setBusyUp(true);
+    try {
+      const compressed = await compressImage(f);
+      const upName = f.name.replace(/\.[^.]+$/, '') + '.webp';
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(new Error('读取失败')); r.readAsDataURL(compressed); });
+      const r = await fetch(`${API}/media/upload`, { method: 'POST', headers, body: JSON.stringify({ name: upName, mime: 'image/webp', data: b64 }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      setAuthor({ ...author, avatar: d.url });
+      setMsg({ type: 'ok', text: '头像已上传，保存名片后生效' });
+    } catch (err) { setMsg({ type: 'err', text: err.message }); } finally { setBusyUp(false); }
+  };
+
+  // 通用二维码上传：写入 card[field]
+  const uploadQr = (field) => async (e) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(new Error('读取失败')); r.readAsDataURL(f); });
+      const r = await fetch(`${API}/media/upload`, { method: 'POST', headers, body: JSON.stringify({ name: f.name, mime: f.type || 'image/png', data: b64 }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      setAuthor({ ...author, card: { ...card, [field]: d.url } });
+      setMsg({ type: 'ok', text: '二维码已上传，保存名片后生效' });
+    } catch (err) { setMsg({ type: 'err', text: err.message }); }
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    try {
+      const r = await fetch(`${API}/site-config`, { method: 'PUT', headers, body: JSON.stringify({ author }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      setMsg({ type: 'ok', text: '名片已保存，站点将自动重新构建并同步上线' });
+      if (d.config?.author) setAuthor(d.config.author);
+    } catch (err) { setMsg({ type: 'err', text: err.message }); }
+  };
+
+  const exportImage = async () => {
+    setBusyExp(true);
+    setMsg({ type: 'ok', text: '正在生成名片图片…' });
+    try {
+      const r = await fetch(`${API}/card/export`);
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error || `导出失败(${r.status})`);
+      }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'memorygarden-card.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setMsg({ type: 'ok', text: '名片图片已生成并开始下载' });
+    } catch (err) {
+      setMsg({ type: 'err', text: err.message });
+    } finally {
+      setBusyExp(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>电子名片</h3>
+      <p style={{ color: '#888', fontSize: 13, marginTop: 0 }}>对应名片页 blog.mgarden.org.cn/vincent/card/，保存后自动同步上线</p>
+      {msg && <div className={`msg msg-${msg.type}`}>{msg.text}</div>}
+      <form onSubmit={save}>
+        <label>姓名</label>
+        <input value={author.name || ''} onChange={(e) => setAuthor({ ...author, name: e.target.value })} />
+        <label>身份 / 头衔</label>
+        <input value={author.role || ''} onChange={(e) => setAuthor({ ...author, role: e.target.value })} />
+        <label>副标题（一句话介绍）</label>
+        <input value={card.sub || ''} onChange={setCard('sub')} />
+        <label>微信号</label>
+        <input value={card.wechatId || ''} onChange={setCard('wechatId')} />
+
+        <label>风格颜色</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {THEMES.map((t) => {
+            const active = (card.theme || 'garden') === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setAuthor({ ...author, card: { ...card, theme: t.id } })}
+                title={`切换为「${t.name}」配色`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                  padding: '8px 12px', borderRadius: 10, fontSize: 13,
+                  border: active ? '2px solid #333' : '1px solid #ccc',
+                  background: '#fff', boxShadow: active ? '0 1px 6px rgba(0,0,0,.15)' : 'none',
+                }}
+              >
+                <span style={{ width: 18, height: 18, borderRadius: '50%', background: t.bg, border: '1px solid #bbb', display: 'inline-block', flexShrink: 0 }} />
+                <span style={{ width: 10, height: 18, borderRadius: 3, background: t.accent, display: 'inline-block', flexShrink: 0 }} />
+                {t.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <label>头像 / Logo</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+          <img
+            src={author.avatar || '/vincent/media/images/card-logo.png'}
+            alt="头像预览"
+            style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', background: '#eee', flexShrink: 0 }}
+          />
+          <div>
+            <input type="file" accept="image/*" onChange={uploadAvatar} disabled={busyUp} /> {busyUp && '上传中…'}
+            <div style={{ marginTop: 6 }}>
+              <button type="button" className="btn" onClick={() => { setAuthor({ ...author, avatar: '' }); setMsg({ type: 'ok', text: '已恢复默认 Logo，保存后生效' }); }}>恢复默认 Logo</button>
+            </div>
+            <small style={{ color: '#999' }}>不上传则默认显示记忆花园 Logo</small>
+          </div>
+        </div>
+
+        <h4 style={{ margin: '14px 0 6px' }}>二维码（名片页展示）</h4>
+        <label>个人微信二维码</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+          {card.wechatQr && <img src={card.wechatQr} alt="个人微信二维码" style={{ width: 56, height: 56, objectFit: 'contain', background: '#fff', borderRadius: 8, flexShrink: 0 }} />}
+          <div>
+            <input type="file" accept="image/*" onChange={uploadQr('wechatQr')} />
+            {card.wechatQr && <div style={{ marginTop: 6 }}><button type="button" className="btn" onClick={() => setAuthor({ ...author, card: { ...card, wechatQr: '' } })}>移除</button></div>}
+            <small style={{ color: '#999' }}>留空则用默认 wechat-qr.png</small>
+          </div>
+        </div>
+        <label>微信公众号二维码</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+          {card.officialQr && <img src={card.officialQr} alt="公众号二维码" style={{ width: 56, height: 56, objectFit: 'contain', background: '#fff', borderRadius: 8, flexShrink: 0 }} />}
+          <div>
+            <input type="file" accept="image/*" onChange={uploadQr('officialQr')} />
+            {card.officialQr && <div style={{ marginTop: 6 }}><button type="button" className="btn" onClick={() => setAuthor({ ...author, card: { ...card, officialQr: '' } })}>移除</button></div>}
+            <small style={{ color: '#999' }}>留空则不显示公众号二维码</small>
+          </div>
+        </div>
+
+        <h4 style={{ margin: '14px 0 6px' }}>作品列表（名片页展示）</h4>
+        {projects.map((p, i) => (
+          <div key={i} style={{ border: '1px solid #eee', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+            <label>作品 {i + 1} 名称</label>
+            <input value={p.name || ''} onChange={setProj(i)('name')} placeholder="名称（留空则不显示该作品）" />
+            <label>描述</label>
+            <input value={p.desc || ''} onChange={setProj(i)('desc')} />
+            <label>链接</label>
+            <input value={p.url || ''} onChange={setProj(i)('url')} />
+            <button type="button" className="btn btn-danger" onClick={() => delProj(i)}>删除该作品</button>
+          </div>
+        ))}
+        <button type="button" className="btn" onClick={addProj}>+ 添加作品</button>
+        <div>
+          <button className="btn btn-primary" type="submit" style={{ marginTop: 14 }}>保存名片</button>
+          <button type="button" className="btn" style={{ marginTop: 14, marginLeft: 10 }} onClick={() => window.open('https://blog.mgarden.org.cn/vincent/card/', '_blank')}>预览</button>
+          <button type="button" className="btn" style={{ marginTop: 14, marginLeft: 10 }} disabled={busyExp} onClick={exportImage}>{busyExp ? '生成中…' : '导出图片'}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function SettingsView() {
   const [author, setAuthor] = useState({ name: '', role: '', bio: '', avatar: '', github: '', xiaohongshu: '', bilibili: '' });
   const [deploy, setDeploy] = useState({ server: '', remote_dir: '', domain: '', ssh_port: '22' });
@@ -447,6 +649,7 @@ function SettingsView() {
         <label>GitHub</label><input value={author.github} onChange={setA('github')} />
         <label>小红书</label><input value={author.xiaohongshu} onChange={setA('xiaohongshu')} />
         <label>B站</label><input value={author.bilibili} onChange={setA('bilibili')} />
+        <label>个人博客</label><input value={author.blog} onChange={setA('blog')} />
         <button className="btn btn-primary" type="submit" style={{ marginTop: 12 }}>保存站点设置</button>
       </form>
 

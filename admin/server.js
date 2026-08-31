@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import os from 'node:os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BLOG_DIR = path.join(__dirname, '..'); // Blog 仓根
@@ -251,14 +252,33 @@ app.put('/api/site-config', (req, res) => {
   try {
     const author = req.body?.author;
     if (!author || typeof author !== 'object') return res.status(400).json({ ok: false, error: '缺少 author 配置' });
+    // card：名片页配置（sub 副标题 / wechatId 微信号 / projects 作品列表）
+    const rawCard = (author.card && typeof author.card === 'object') ? author.card : {};
+    const rawProjects = Array.isArray(rawCard.projects) ? rawCard.projects.slice(0, 6) : [];
+    // 名片主题：仅允许预设白名单，非法值回退 garden
+    const VALID_THEMES = ['garden', 'ocean', 'night', 'minimal', 'wine', 'violet'];
+    const cleanCard = {
+      theme: VALID_THEMES.includes(rawCard.theme) ? rawCard.theme : 'garden',
+      sub: String(rawCard.sub || '').slice(0, 300),
+      wechatId: String(rawCard.wechatId || '').slice(0, 50),
+      wechatQr: String(rawCard.wechatQr || '').slice(0, 500),
+      officialQr: String(rawCard.officialQr || '').slice(0, 500),
+      projects: rawProjects.map((p, i) => ({
+        name: String((p && p.name) || '').slice(0, 100),
+        desc: String((p && p.desc) || '').slice(0, 300),
+        url: String((p && p.url) || '').slice(0, 300),
+      })),
+    };
     const clean = {
       name: String(author.name || '').slice(0, 50),
       role: String(author.role || '').slice(0, 100),
       bio: String(author.bio || '').slice(0, 500),
       avatar: String(author.avatar || '').slice(0, 500),
+      card: cleanCard,
       github: String(author.github || '').slice(0, 200),
       xiaohongshu: String(author.xiaohongshu || '').slice(0, 200),
       bilibili: String(author.bilibili || '').slice(0, 200),
+      blog: String(author.blog || '').slice(0, 200),
     };
     fs.writeFileSync(SITE_CONFIG, JSON.stringify({ author: clean }, null, 2), 'utf-8');
     res.json({ ok: true, config: { author: clean } });
@@ -267,7 +287,46 @@ app.put('/api/site-config', (req, res) => {
   }
 });
 
-// ─── 服务器部署配置（本地管理，免登录，供打包部署用）───
+// ─── 名片导出图片（puppeteer-core + 本机 Chrome 整页截图）───
+const CARD_EXPORT_URL = (PUBLIC_BASE || process.env.PUBLIC_BASE)
+  ? `http://localhost:3003${PUBLIC_BASE}/card/`
+  : 'http://localhost:3003/card/';
+const CHROME_BIN = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+
+let puppeteerMod = null;
+try { puppeteerMod = (await import('puppeteer-core')).default; } catch {}
+
+app.get('/api/card/export', async (req, res) => {
+  // 仅本机
+  if (req.headers.host && !/localhost|127\.0\.0\.1/.test(req.headers.host)) {
+    return res.status(403).json({ ok: false, error: '仅限本机' });
+  }
+  if (!puppeteerMod) return res.status(500).json({ ok: false, error: 'puppeteer-core 未安装' });
+  let browser;
+  try {
+    browser = await puppeteerMod.launch({
+      executablePath: CHROME_BIN,
+      headless: 'shell',
+      args: ['--no-sandbox', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=2'],
+    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 480, height: 900, deviceScaleFactor: 2 });
+    await page.goto(CARD_EXPORT_URL, { waitUntil: 'networkidle0', timeout: 20000 });
+    await new Promise((r) => setTimeout(r, 1500)); // 等字体/二维码图
+    const el = await page.$('.card');
+    const shot = await (el || page).screenshot({ type: 'png' });
+    const buf = Buffer.isBuffer(shot) ? shot : Buffer.from(shot);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', 'attachment; filename="memorygarden-card.png"');
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+});
+
+
 const DEPLOY_CONFIG_FILE = path.join(BLOG_DIR, 'deploy-config.json');
 
 app.get('/api/deploy-config', (req, res) => {

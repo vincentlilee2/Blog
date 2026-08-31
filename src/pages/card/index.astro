@@ -1,0 +1,375 @@
+---
+// 记忆花园 MemoryGarden · 电子名片（展会版）
+// 线上地址：https://blog.mgarden.org.cn/vincent/card/
+// 内容统一从 site-config.json 的 author 读取（后台「名片」页可编辑）
+import fs from 'node:fs';
+import path from 'node:path';
+import siteConfig from '../../../site-config.json';
+
+// 二维码文件检测：dev/build 下 cwd 均为项目根；import.meta.url 在 build 时不可靠，双保险
+const QR_REL = 'public/media/images/wechat-qr.png';
+const hasQr = fs.existsSync(path.resolve(process.cwd(), QR_REL))
+  || fs.existsSync(new URL(`../../../${QR_REL}`, import.meta.url));
+const _base = import.meta.env.BASE_URL || '/'; // '/' 本地，'/vincent' 线上
+const BASE = _base.endsWith('/') ? _base : _base + '/';
+const SITE = 'https://blog.mgarden.org.cn';
+
+// ── 名片内容（后台「名片」页可改：site-config.json → author）────
+const A = siteConfig.author || {};
+const CARD = {
+  name: A.name || 'Vincent',
+  role: A.role || '',
+  sub: (A.card && A.card.sub) || '',
+  wechatId: (A.card && A.card.wechatId) || '',
+  wechatQr: (A.card && A.card.wechatQr) || '',       // 个人微信二维码图片 URL
+  officialQr: (A.card && A.card.officialQr) || '',   // 微信公众号二维码图片 URL
+  avatar: A.avatar || '', // '' = 使用默认 logo
+  projects: (A.card && Array.isArray(A.card.projects) && A.card.projects.length)
+    ? A.card.projects
+    : [{ name: '', desc: '', url: '' }],
+};
+const CARD_SOCIALS = [
+  { label: '个人博客', url: A.blog || 'https://blog.mgarden.org.cn/vincent/' },
+  { label: 'GitHub', url: A.github },
+  { label: '小红书', url: A.xiaohongshu },
+].filter((s) => s.url);
+// 头像：后台上传了 avatar 用 avatar，否则默认 logo（card-logo.png）
+const AVATAR_SRC = CARD.avatar ? CARD.avatar : `${BASE}media/images/card-logo.png`;
+// 主题：后台「名片」页可选（garden/ocean/night/minimal/wine/violet），默认 garden
+const VALID_THEMES = ['garden', 'ocean', 'night', 'minimal', 'wine', 'violet'];
+const THEME = (A.card && A.card.theme && VALID_THEMES.includes(A.card.theme)) ? A.card.theme : 'garden';
+// ──────────────────────────────────────────────────────
+
+const CARD_URL = `${SITE}/vincent/card/`;
+const OG_IMG = `${SITE}/vincent/media/images/card-og-square.jpg`; // JPG 方形图，微信聊天卡片缩略图兼容性最好
+const OG_LOGO = `${SITE}/vincent/media/images/card-logo.png`;
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme={THEME}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>记忆花园 MemoryGarden · {CARD.name} 电子名片</title>
+  <meta name="description" content={`${CARD.role}。${CARD.sub}`} />
+
+  <!-- 微信分享卡片（og 标签） -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={CARD_URL} />
+  <meta property="og:title" content={`记忆花园 MemoryGarden · ${CARD.name} 电子名片`} />
+  <meta property="og:description" content={`${CARD.role}｜${CARD.sub}。扫码认识我，聊聊 AI 与创作。`} />
+  <meta property="og:image" content={OG_IMG} />
+  <meta property="og:image:width" content="600" />
+  <meta property="og:image:height" content="600" />
+  <link rel="icon" type="image/png" href={`${BASE}media/images/card-logo.png`} />
+
+  <style>
+    /* ── 主题变量：默认 garden（记忆花园），后台「名片」页可切换 ── */
+    :root {
+      --bg-1: #0d2318;
+      --bg-2: #081712;
+      --card: rgba(255, 255, 255, 0.045);
+      --card-border: rgba(201, 169, 97, 0.22);
+      --gold: #c9a961;
+      --gold-soft: #a88a4c;
+      --gold-weak: rgba(201, 169, 97, 0.35);
+      --cream: #efe7d6;
+      --muted: rgba(239, 231, 214, 0.62);
+      --muted-weak: rgba(239, 231, 214, 0.38);
+      --radius: 18px;
+    }
+    /* 深海商务蓝 */
+    :root[data-theme="ocean"] {
+      --bg-1: #0a1c30; --bg-2: #06121f;
+      --card: rgba(255, 255, 255, 0.045);
+      --card-border: rgba(126, 168, 216, 0.25);
+      --gold: #7ea8d8; --gold-soft: #5b83b0;
+      --gold-weak: rgba(126, 168, 216, 0.35);
+      --cream: #e8f0fa; --muted: rgba(232, 240, 250, 0.62);
+      --muted-weak: rgba(232, 240, 250, 0.38);
+    }
+    /* 黑金奢华 */
+    :root[data-theme="night"] {
+      --bg-1: #0d0d10; --bg-2: #050507;
+      --card: rgba(255, 255, 255, 0.045);
+      --card-border: rgba(212, 175, 55, 0.24);
+      --gold: #d4af37; --gold-soft: #a8862e;
+      --gold-weak: rgba(212, 175, 55, 0.35);
+      --cream: #f5f1e6; --muted: rgba(245, 241, 230, 0.62);
+      --muted-weak: rgba(245, 241, 230, 0.38);
+    }
+    /* 极简白 */
+    :root[data-theme="minimal"] {
+      --bg-1: #faf8f4; --bg-2: #efece4;
+      --card: rgba(255, 255, 255, 0.65);
+      --card-border: rgba(17, 24, 39, 0.14);
+      --gold: #1f2937; --gold-soft: #6b7280;
+      --gold-weak: rgba(31, 41, 55, 0.22);
+      --cream: #111827; --muted: rgba(17, 24, 39, 0.62);
+      --muted-weak: rgba(17, 24, 39, 0.38);
+    }
+    /* 典雅酒红 */
+    :root[data-theme="wine"] {
+      --bg-1: #241018; --bg-2: #150a0e;
+      --card: rgba(255, 255, 255, 0.045);
+      --card-border: rgba(217, 142, 115, 0.24);
+      --gold: #d98e73; --gold-soft: #b06a52;
+      --gold-weak: rgba(217, 142, 115, 0.35);
+      --cream: #f5e8e2; --muted: rgba(245, 232, 226, 0.62);
+      --muted-weak: rgba(245, 232, 226, 0.38);
+    }
+    /* 科技紫 */
+    :root[data-theme="violet"] {
+      --bg-1: #161030; --bg-2: #0b0718;
+      --card: rgba(255, 255, 255, 0.045);
+      --card-border: rgba(167, 139, 250, 0.26);
+      --gold: #a78bfa; --gold-soft: #7c66d6;
+      --gold-weak: rgba(167, 139, 250, 0.35);
+      --cream: #ece8fb; --muted: rgba(236, 232, 251, 0.62);
+      --muted-weak: rgba(236, 232, 251, 0.38);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(120% 90% at 50% 0%, var(--bg-1) 0%, var(--bg-2) 75%);
+      color: var(--cream);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 0 18px calc(36px + env(safe-area-inset-bottom));
+    }
+    .card {
+      width: 100%;
+      max-width: 480px;
+      padding-top: calc(30px + env(safe-area-inset-top));
+    }
+
+    /* ── 品牌行 ── */
+    .brand {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      letter-spacing: 0.42em; text-indent: 0.42em; /* 字距补偿居中 */
+      font-size: 12px; color: var(--gold-soft); margin-bottom: 34px;
+    }
+    .brand .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+
+    /* ── 首屏（头像与名字左右排列）── */
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      text-align: left;
+    }
+    .hero h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.06em; }
+    .hero .role {
+      margin-top: 8px; font-size: 14px; color: var(--gold);
+      letter-spacing: 0.18em;
+    }
+    .hero .tagline { margin-top: 14px; font-size: 14.5px; color: var(--muted); line-height: 1.7; }
+    .avatar-wrap {
+      width: 108px; height: 108px; margin: 0;
+      flex-shrink: 0;
+      border-radius: 50%; padding: 3px;
+      background: conic-gradient(from 210deg, var(--gold), var(--gold-weak), var(--gold-soft), var(--gold));
+    }
+    .avatar {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: var(--bg-1); display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-text { min-width: 0; }
+
+    /* ── 分隔 ── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 30px 0 18px; color: var(--gold-soft); font-size: 12px;
+      letter-spacing: 0.3em; text-indent: 0.3em;
+    }
+    .divider::before, .divider::after {
+      content: ""; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-weak), transparent);
+    }
+
+    /* ── 作品 ── */
+    .projects { display: grid; gap: 12px; }
+    .proj {
+      display: block; text-decoration: none; color: inherit;
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 16px 18px;
+      transition: transform .15s ease, border-color .15s ease;
+    }
+    .proj:active { transform: scale(0.985); }
+    .proj .t { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .proj .t span { font-size: 15px; font-weight: 600; color: var(--cream); }
+    .proj .t i {
+      font-style: normal; font-size: 11px; color: var(--gold-soft);
+      border: 1px solid var(--card-border); border-radius: 999px; padding: 2px 9px;
+      white-space: nowrap;
+    }
+    .proj .d { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .proj .go { margin-top: 10px; font-size: 12px; color: var(--gold); opacity: .85; }
+
+    /* ── 社交 ── */
+    .socials { display: flex; gap: 10px; }
+    .soc {
+      flex: 1; text-align: center; text-decoration: none;
+      font-size: 13px; color: var(--cream);
+      padding: 11px 0; border-radius: 999px;
+      background: var(--card); border: 1px solid var(--card-border);
+      transition: transform .15s ease, border-color .15s ease;
+    }
+    .soc:active { transform: scale(0.97); }
+
+    /* ── 微信 ── */
+    .wechat {
+      background: linear-gradient(160deg, var(--gold-weak), transparent);
+      border: 1px solid var(--card-border); border-radius: var(--radius);
+      padding: 20px 18px; text-align: center;
+    }
+    .wechat .hint { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .wechat .hint b { color: var(--gold); }
+    .qr-box { width: 172px; height: 172px; margin: 16px auto; border-radius: 14px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    .qr-box .placeholder { font-size: 12px; color: #999; padding: 0 14px; line-height: 1.6; }
+    .qr-row { display: flex; gap: 14px; margin: 16px auto 4px; justify-content: center; }
+    .qr-cell { flex: 1; max-width: 168px; }
+    .qr-cap { margin-top: 8px; font-size: 12.5px; color: var(--gold-soft); letter-spacing: .12em; }
+    .wechat .id-row {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 12px; font-size: 14px; color: var(--cream);
+    }
+    .wechat .id-row code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      background: rgba(255,255,255,.07); border: 1px solid var(--card-border);
+      padding: 4px 10px; border-radius: 8px; font-size: 13px; letter-spacing: .04em;
+    }
+    .btn-copy {
+      border: 1px solid var(--gold); color: var(--gold); background: transparent;
+      font-size: 12px; padding: 4px 12px; border-radius: 999px; cursor: pointer;
+      transition: background .15s ease, color .15s ease;
+    }
+    .btn-copy:active { background: var(--gold); color: var(--bg-1); }
+
+    /* ── 页脚 ── */
+    footer { margin-top: 30px; text-align: center; font-size: 11.5px; color: var(--muted-weak); letter-spacing: .12em; }
+    footer a { color: var(--gold-soft); text-decoration: none; }
+
+    @media (max-width: 380px) {
+      .hero { gap: 14px; }
+      .avatar-wrap { width: 84px; height: 84px; }
+      .hero h1 { font-size: 24px; }
+      .hero .tagline { font-size: 13.5px; }
+      .qr-box { width: 152px; height: 152px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 微信聊天卡片缩略图抓取兜底：微信爬虫有时优先取页面第一张 <img>，隐藏引用保证抓到的就是卡图 -->
+  <img src={OG_IMG} alt="" style="display:none" />
+  <div class="card">
+    <div class="brand"><span class="dot"></span>MEMORY GARDEN 记忆花园<span class="dot"></span></div>
+
+    <!-- 首屏 -->
+    <section class="hero">
+      <div class="avatar-wrap">
+        <div class="avatar">
+          <img src={AVATAR_SRC} alt={CARD.name} width="108" height="108" />
+        </div>
+      </div>
+      <div class="hero-text">
+        <h1>{CARD.name}</h1>
+        <p class="role">{CARD.role}</p>
+        <p class="tagline">{CARD.sub}</p>
+      </div>
+    </section>
+
+    <!-- 作品 -->
+    <div class="divider">作品 WORKS</div>
+    <section class="projects">
+      {
+        CARD.projects.filter((p) => p.name).map((p) => (
+          <a class="proj" href={p.url} target="_blank" rel="noopener">
+            <div class="t"><span>{p.name}</span><i>开源 · 自研</i></div>
+            <div class="d">{p.desc}</div>
+            <div class="go">查看 →</div>
+          </a>
+        ))
+      }
+    </section>
+
+    <!-- 社交 -->
+    <div class="divider" style="margin-top:30px">找到我 FIND ME</div>
+    <section class="socials">
+      {
+        CARD_SOCIALS.map((s) => (
+          <a class="soc" href={s.url} target="_blank" rel="noopener">{s.label}</a>
+        ))
+      }
+    </section>
+
+    <!-- 微信 -->
+    <div class="divider" style="margin-top:30px">添加微信 WECHAT</div>
+    <section class="wechat">
+      <p class="hint">扫码添加好友，或直接搜索微信号<br /><b>备注「展会」更容易通过哦</b></p>
+      <div class="qr-row">
+        <div class="qr-cell">
+          <div class="qr-box">
+            {
+              (hasQr || CARD.wechatQr) ? (
+                <img src={CARD.wechatQr || `${BASE}media/images/wechat-qr.png`} alt="微信二维码" />
+              ) : (
+                <div class="placeholder">微信二维码待添加<br />请将图片放到<br />public/media/images/wechat-qr.png</div>
+              )
+            }
+          </div>
+          <div class="qr-cap">个人微信</div>
+        </div>
+        <div class="qr-cell">
+          <div class="qr-box">
+            {
+              CARD.officialQr ? (
+                <img src={CARD.officialQr} alt="微信公众号二维码" />
+              ) : (
+                <div class="placeholder">公众号二维码待添加<br />在后台「名片」页上传</div>
+              )
+            }
+          </div>
+          <div class="qr-cap">微信公众号</div>
+        </div>
+      </div>
+      <div class="id-row">
+        <code>{CARD.wechatId}</code>
+        <button class="btn-copy" data-copy={CARD.wechatId}>复制</button>
+      </div>
+    </section>
+
+    <footer>
+      MemoryGarden © 2026 · <a href="https://blog.mgarden.org.cn" target="_blank" rel="noopener">blog.mgarden.org.cn</a>
+    </footer>
+  </div>
+
+  <script>
+    // 复制微信号
+    document.querySelectorAll('.btn-copy').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const text = btn.dataset.copy;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '已复制 ✓';
+        } catch {
+          // 剪贴板不可用时降级
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          btn.textContent = '已复制 ✓';
+        }
+        setTimeout(() => { btn.textContent = '复制'; }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

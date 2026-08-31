@@ -44,19 +44,21 @@ const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vi
 ---
 
 <aside class="sidebar">
-  <!-- 个人简介 -->
+  <!-- 个人简介（点击头像/名字进入电子名片） -->
   <div class="side-card side-about">
-    <div class="side-about__top">
-      {author.avatar ? (
-        <img class="side-avatar-img" src={author.avatar} alt={author.name} />
-      ) : (
-        <div class="side-avatar">{(author.name || 'V').charAt(0)}</div>
-      )}
-      <div>
-        <div class="side-about__name">{author.name || 'Vincent'}</div>
-        <div class="side-about__role">{author.role || ''}</div>
+    <a class="side-about__link" href={`${B}card/`} title="我的电子名片">
+      <div class="side-about__top">
+        {author.avatar ? (
+          <img class="side-avatar-img" src={author.avatar} alt={author.name} />
+        ) : (
+          <img class="side-avatar-img" src={`${B}media/images/card-logo.png`} alt={author.name || 'V'} />
+        )}
+        <div>
+          <div class="side-about__name">{author.name || 'Vincent'}</div>
+          <div class="side-about__role">{author.role || ''}</div>
+        </div>
       </div>
-    </div>
+    </a>
     {author.bio && <p class="side-about__bio">{author.bio}</p>}
     <div class="side-links">
       {author.github && (
