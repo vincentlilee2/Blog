@@ -367,7 +367,15 @@ if (PUBLIC_BASE) {
 if (fs.existsSync(ADMIN_DIST)) {
   const adminHtml = path.join(ADMIN_DIST, 'admin.html');
   const assetsDir = path.join(ADMIN_DIST, 'assets');
-  const serveAdmin = (req, res) => res.sendFile(adminHtml);
+  // 注入前端全局：博客前台 base 前缀（多用户子站如 /vincent），供「返回博客」等链接使用
+  const serveAdmin = (req, res) => {
+    const raw = fs.readFileSync(adminHtml, 'utf-8');
+    const injected = raw.replace(
+      '<head>',
+      `<head><script>window.__PUBLIC_BASE__ = ${JSON.stringify(PUBLIC_BASE || '')};</script>`
+    );
+    res.type('html').send(injected);
+  };
   app.get('/admin/assets/*', (req, res) => res.sendFile(path.join(assetsDir, path.basename(req.path))));
   app.get('/admin', serveAdmin);
   app.get('/admin/', serveAdmin);

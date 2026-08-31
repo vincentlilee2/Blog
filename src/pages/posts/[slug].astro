@@ -52,4 +52,16 @@ const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /<b
       <Sidebar showMonthPosts />
     </div>
   </div>
+  <script>
+    // 详情页去重：正文第一张图若与封面图是同一张（封面由正文首图自动填充），隐藏正文里的那张，避免重复
+    const coverImg = document.querySelector('.post-cover');
+    const firstBodyImg = document.querySelector('.post-body img');
+    if (coverImg && firstBodyImg) {
+      // 统一解码并去掉协议/域名后比较路径（中文文件名可能存在编码差异）
+      const norm = (u) => { try { return decodeURIComponent(new URL(u).pathname); } catch { return u; } };
+      if (norm(firstBodyImg.src) === norm(coverImg.src)) {
+        firstBodyImg.style.display = 'none';
+      }
+    }
+  </script>
 </Layout>

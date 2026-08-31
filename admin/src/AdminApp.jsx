@@ -101,6 +101,8 @@ function AdminView() {
   const [preview, setPreview] = useState(false);
   const [view, setView] = useState('posts');
   const contentRef = useRef(null);
+  // 封面图自动填充控制：用户手动清空封面后不再自动填（尊重用户选择）
+  const coverLockedRef = useRef(false);
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
@@ -139,10 +141,35 @@ function AdminView() {
   };
 
   const del = async (slug) => {
-    if (!confirm(`确定删除 ${slug}.md？`)) return;
+    const action = confirm(`「${slug}.md」 要如何处理？\n\n确定 → 删除（永久删除文件，不可恢复）\n取消 → 保留文章\n\n（归档请点「编辑」→ 关闭「发布」勾选后保存）`);
+    if (!action) return;
     const r = await fetch(`${API}/blog/posts/${slug}`, { method: 'DELETE', headers });
     const data = await r.json();
-    if (data.ok) loadPosts(); else alert(data.error);
+    if (data.ok) { setMsg({ type: 'ok', text: `已删除 ${slug}.md` }); loadPosts(); }
+    else alert(data.error);
+  };
+
+  // 归档：把文章设为未发布（published:false），文件保留、后台列表可见
+  const archive = async (p) => {
+    if (!confirm(`归档「${p.title || p.slug}」？\n归档后前台不再显示，但后台文章列表仍可见（状态：未发布）。`)) return;
+    try {
+      const r = await fetch(`${API}/blog/posts/${p.slug}`, { headers });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || '读取失败');
+      const post = d.post;
+      const save = await fetch(`${API}/blog/posts`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          slug: post.slug, title: post.title || '', description: post.description || '',
+          date: (post.date || '').slice(0, 10), tags: Array.isArray(post.tags) ? post.tags : [],
+          cover: post.cover || '', published: false, audience: post.audience || 'public', content: post.content || '',
+        }),
+      });
+      const sd = await save.json();
+      if (!save.ok || !sd.ok) throw new Error(sd.error || '归档失败');
+      setMsg({ type: 'ok', text: `已归档：${post.slug}.md（未发布，前台不显示）` });
+      loadPosts();
+    } catch (e) { setMsg({ type: 'err', text: e.message }); }
   };
 
   // 上传媒体文件 → 压缩后上传 → 自动插入正文光标处
@@ -204,6 +231,7 @@ function AdminView() {
 
   const edit = async (p) => {
     setEditing(p.slug);
+    coverLockedRef.current = false; // 进入编辑：允许重新自动填充
     try {
       const r = await fetch(`${API}/blog/posts/${p.slug}`, { headers });
       const d = await r.json();
@@ -211,7 +239,20 @@ function AdminView() {
     } catch (e) { setMsg({ type: 'err', text: e.message }); }
   };
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const set = (k) => (e) => {
+    const v = e.target.value;
+    // 封面字段：用户手动编辑（含清空）后锁定，不再被自动填充覆盖
+    if (k === 'cover') coverLockedRef.current = true;
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      // 正文变更时：若封面为空且未锁定，自动取正文第一张图作为封面
+      if (k === 'content' && !coverLockedRef.current && !next.cover) {
+        const m = v.match(/!\[[^\]]*\]\(([^)\s]+)\)/);
+        if (m) next.cover = m[1];
+      }
+      return next;
+    });
+  };
 
   // 解析正文中的 Markdown 图片 ![alt](url)，用于输入框下方直接预览
   const contentImages = (form.content.match(/!\[[^\]]*\]\([^)\s]+\)/g) || [])
@@ -228,7 +269,7 @@ function AdminView() {
           <button className={view === 'media' ? 'active' : ''} onClick={() => setView('media')}>媒体</button>
           <button className={view === 'card' ? 'active' : ''} onClick={() => setView('card')}>名片</button>
           <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>设置</button>
-          <a href="http://localhost:3003/" className="nav-admin-home" title="返回博客首页">← 返回博客</a>
+          <a href={`http://localhost:3003${(window.__PUBLIC_BASE__ || '').replace(/\/?$/, '/')}`} className="nav-admin-home" title="返回博客首页">← 返回博客</a>
         </nav>
       </header>
 
@@ -280,9 +321,9 @@ function AdminView() {
                     <div className={`cover-tip${coverHelp ? ' show' : ''}`} role="tooltip">
                       <b>封面图怎么用</b>
                       <ol>
-                        <li>填一张图片的 URL：媒体库上传后点「复制URL」，或任意外部图片链接；留空则不显示</li>
-                        <li>保存后，博客<b>首页/列表</b>的文章卡片顶部会显示这张封面图</li>
-                        <li>文章<b>详情页</b>标题上方会显示封面大图</li>
+                        <li><b>自动填充</b>：在正文里插入第一张图片时，会自动把它填入封面图链接（无需手动填）</li>
+                        <li>想换封面：手动改这里的链接即可；<b>清空链接 → 该文章不显示封面图</b>（清空后不再被自动填充）</li>
+                        <li>保存后，博客<b>首页/列表</b>的文章卡片顶部会显示这张封面图；文章<b>详情页</b>标题上方显示封面大图</li>
                       </ol>
                     </div>
                   </div>
@@ -329,7 +370,7 @@ function AdminView() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ marginTop: 0 }}>文章列表</h3>
-              {editing === null && <button className="btn btn-primary" onClick={() => { setEditing(''); setForm({ slug: '', title: '', description: '', date: new Date().toISOString().slice(0, 10), tags: '', cover: '', published: true, audience: 'public', content: '' }); }}>＋ 新建</button>}
+              {editing === null && <button className="btn btn-primary" onClick={() => { coverLockedRef.current = false; setEditing(''); setForm({ slug: '', title: '', description: '', date: new Date().toISOString().slice(0, 10), tags: '', cover: '', published: true, audience: 'public', content: '' }); }}>＋ 新建</button>}
             </div>
             {loading ? <p>加载中…</p> : (
               <ul className="post-list">
@@ -341,6 +382,7 @@ function AdminView() {
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="btn" onClick={() => edit(p)}>编辑</button>
+                      <button className="btn" onClick={() => archive(p)} disabled={p.published === false} title={p.published === false ? '已归档' : '归档（前台不显示，后台仍可见）'}>归档</button>
                       <button className="btn btn-danger" onClick={() => del(p.slug)}>删除</button>
                     </div>
                   </li>
