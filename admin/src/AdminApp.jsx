@@ -577,6 +577,8 @@ function CardView() {
         <input value={author.name || ''} onChange={(e) => setAuthor({ ...author, name: e.target.value })} />
         <label>身份 / 头衔</label>
         <input value={author.role || ''} onChange={(e) => setAuthor({ ...author, role: e.target.value })} />
+        <label>品牌文字（微信卡片第一行）</label>
+        <input value={card.brand || ''} onChange={setCard('brand')} placeholder="记忆花园 MemoryGarden" />
         <label>副标题（一句话介绍）</label>
         <input value={card.sub || ''} onChange={setCard('sub')} />
         <label>微信号</label>

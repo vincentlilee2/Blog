@@ -21,6 +21,7 @@ const CARD = {
   name: A.name || 'Your Name',
   role: A.role || '',
   sub: (A.card && A.card.sub) || '',
+  brand: (A.card && A.card.brand) || 'MemoryGarden', // 品牌文字（微信卡片第一行，后台可改）
   wechatId: (A.card && A.card.wechatId) || '',
   wechatQr: (A.card && A.card.wechatQr) || '',       // 个人微信二维码图片 URL
   officialQr: (A.card && A.card.officialQr) || '',   // 微信公众号二维码图片 URL
@@ -59,13 +60,13 @@ const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>记忆花园 MemoryGarden · {CARD.name} 电子名片</title>
+  <title>{CARD.brand} · {CARD.name} 电子名片</title>
   <meta name="description" content={`${CARD.role}。${CARD.sub}`} />
 
   <!-- 微信分享卡片（og 标签） -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content={CARD_URL} />
-  <meta property="og:title" content={`记忆花园 MemoryGarden · ${CARD.name} 电子名片`} />
+  <meta property="og:title" content={`${CARD.brand} · ${CARD.name}`} />
   <meta property="og:description" content={`${CARD.role}｜${CARD.sub}。扫码认识我，聊聊 AI 与创作。`} />
   <meta property="og:image" content={OG_IMG} />
   <meta property="og:image:width" content="600" />
@@ -320,7 +321,7 @@ const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
     <!-- 微信 -->
     <div class="divider" style="margin-top:30px">添加微信 WECHAT</div>
     <section class="wechat">
-      <p class="hint">扫码添加好友，或直接搜索微信号<br /><b>备注「展会」更容易通过哦</b></p>
+      <p class="hint">扫码添加好友，或直接搜索微信号</p>
       <div class="qr-row">
         <div class="qr-cell">
           <div class="qr-box">

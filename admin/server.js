@@ -258,6 +258,7 @@ app.put('/api/site-config', (req, res) => {
     // 名片主题：仅允许预设白名单，非法值回退 garden
     const VALID_THEMES = ['garden', 'ocean', 'night', 'minimal', 'wine', 'violet'];
     const cleanCard = {
+      brand: String(rawCard.brand || '').slice(0, 60),
       theme: VALID_THEMES.includes(rawCard.theme) ? rawCard.theme : 'garden',
       sub: String(rawCard.sub || '').slice(0, 300),
       wechatId: String(rawCard.wechatId || '').slice(0, 50),
