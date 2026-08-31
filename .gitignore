@@ -17,6 +17,15 @@ deploy-config.json
 .env
 .env.*
 
+# 媒体资源（默认全部忽略：个人照片/头像/微信码等私人内容不进开源仓）
+# 仅在白名单中放行仓库自带的品牌素材（电子名片用）
+public/media/**
+!public/media/images/card-logo.png
+!public/media/images/card-long.png
+!public/media/images/card-og.png
+!public/media/images/card-og-square.png
+!public/media/images/card-og-square.jpg
+
 # 系统文件
 .DS_Store
 Thumbs.db
