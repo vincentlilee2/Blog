@@ -3,7 +3,7 @@ title: "欢迎来到记忆花园"
 description: "一个现代精美的个人博客系统示例文章。"
 date: 2026-08-25
 tags: ["随笔", "开始"]
-cover: "/media/images/card-logo.png"
+cover: "/vincent/media/images/card-logo.png"
 published: true
 audience: public
 ---
