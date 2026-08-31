@@ -139,6 +139,6 @@ done
 
 ## 五、与 MyCenter 后台的关系（可选）
 
-本 Blog 可配合 [MyCenter](https://github.com/vincentlilee2) 主仓库的**统一后台**使用：在 `http://localhost:18890/admin` 可视化写文章、上传媒体、配置站点信息。后台将文章写成 `src/content/blog/*.md`，再由上述流程构建发布。
+本 Blog 可配合 [MyCenter](https://github.com/your-org) 主仓库的**统一后台**使用：在 `http://localhost:18890/admin` 可视化写文章、上传媒体、配置站点信息。后台将文章写成 `src/content/blog/*.md`，再由上述流程构建发布。
 
 后台发布时**文章 slug（文件名）留空会自动生成** `post-<时间戳>.md`，无需手动指定英文文件名。

@@ -4,7 +4,7 @@ import Layout from '../../layouts/Layout.astro';
 
 const posts = (await getCollection('blog')).filter((p) => p.data.published);
 const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
-const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /<base>/
 ---
 
 <Layout title="标签 · MemoryGarden Blog">

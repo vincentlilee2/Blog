@@ -40,7 +40,7 @@ const monthLabel = (key) => {
   const [y, m] = key.split('-');
   return `${y}年${Number(m)}月`;
 };
-const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vincent/
+const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /<base>/
 ---
 
 <aside class="sidebar">
@@ -54,7 +54,7 @@ const B = import.meta.env.BASE_URL.replace(/\/?$/, '/'); // 确保尾斜杠: /vi
           <img class="side-avatar-img" src={`${B}media/images/card-logo.png`} alt={author.name || 'V'} />
         )}
         <div>
-          <div class="side-about__name">{author.name || 'Vincent'}</div>
+          <div class="side-about__name">{author.name || 'Your Name'}</div>
           <div class="side-about__role">{author.role || ''}</div>
         </div>
       </div>

@@ -14,9 +14,9 @@ const {
 
 // local=本地开发(显示本地服务链接)；server=线上构建(隐藏 localhost 链接)
 const publicMode = import.meta.env.PUBLIC_MODE || 'local';
-// 子路径 base（多用户子站：/vincent 等），链接一律用 B 前缀拼接
+// 子路径 base（多用户子站：/<user> 等），链接一律用 B 前缀拼接
 const B = import.meta.env.BASE_URL;
-const authorName = siteConfig.author?.name || 'Vincent';
+const authorName = siteConfig.author?.name || 'Your Name';
 ---
 
 <!doctype html>

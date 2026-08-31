@@ -21,8 +21,8 @@ const ADMIN_DIST = path.join(__dirname, 'admin-dist');
 const MEDIA_DIR = path.join(BLOG_DIR, 'public', 'media');
 const SITE_CONFIG = path.join(BLOG_DIR, 'site-config.json');
 
-// 多用户子站 base 前缀（如 /vincent、/wesley）：优先环境变量，其次 admin/server-config.json
-// 媒体 URL 据此生成（/vincent/media/...），子路径部署时文章里的图片才能正确加载
+// 多用户子站 base 前缀（如 /<user>）：优先环境变量，其次 admin/server-config.json
+// 媒体 URL 据此生成（/<base>/media/...），子路径部署时文章里的图片才能正确加载
 let PUBLIC_BASE = '';
 try {
   PUBLIC_BASE = JSON.parse(fs.readFileSync(path.join(__dirname, 'server-config.json'), 'utf8')).publicBase || '';
@@ -358,7 +358,7 @@ app.put('/api/deploy-config', (req, res) => {
 // ─── 静态托管媒体文件（/media/* → Blog/public/media/）───
 // 使后台媒体库的缩略图能正确加载（后台运行在独立端口，不依赖前台 3003）
 app.use('/media', express.static(MEDIA_DIR));
-// 多用户子站模式：同时托管带 base 前缀的媒体路径（admin 预览用 /vincent/media/...）
+// 多用户子站模式：同时托管带 base 前缀的媒体路径（admin 预览用 /<base>/media/...）
 if (PUBLIC_BASE) {
   app.use(`${PUBLIC_BASE}/media`, express.static(MEDIA_DIR));
 }

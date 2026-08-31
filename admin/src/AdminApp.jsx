@@ -228,7 +228,7 @@ function AdminView() {
           <button className={view === 'media' ? 'active' : ''} onClick={() => setView('media')}>媒体</button>
           <button className={view === 'card' ? 'active' : ''} onClick={() => setView('card')}>名片</button>
           <button className={view === 'settings' ? 'active' : ''} onClick={() => setView('settings')}>设置</button>
-          <a href="http://localhost:3003/vincent/" className="nav-admin-home" title="返回博客首页">← 返回博客</a>
+          <a href="http://localhost:3003/" className="nav-admin-home" title="返回博客首页">← 返回博客</a>
         </nav>
       </header>
 
@@ -513,7 +513,7 @@ function CardView() {
   return (
     <div className="card">
       <h3 style={{ marginTop: 0 }}>电子名片</h3>
-      <p style={{ color: '#888', fontSize: 13, marginTop: 0 }}>对应名片页 blog.mgarden.org.cn/vincent/card/，保存后自动同步上线</p>
+      <p style={{ color: '#888', fontSize: 13, marginTop: 0 }}>对应名片页 your-domain.com/&lt;base&gt;/card/，保存后自动同步上线</p>
       {msg && <div className={`msg msg-${msg.type}`}>{msg.text}</div>}
       <form onSubmit={save}>
         <label>姓名</label>
@@ -553,7 +553,7 @@ function CardView() {
         <label>头像 / Logo</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
           <img
-            src={author.avatar || '/vincent/media/images/card-logo.png'}
+            src={author.avatar || '/<base>/media/images/card-logo.png'}
             alt="头像预览"
             style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', background: '#eee', flexShrink: 0 }}
           />
@@ -601,7 +601,7 @@ function CardView() {
         <button type="button" className="btn" onClick={addProj}>+ 添加作品</button>
         <div>
           <button className="btn btn-primary" type="submit" style={{ marginTop: 14 }}>保存名片</button>
-          <button type="button" className="btn" style={{ marginTop: 14, marginLeft: 10 }} onClick={() => window.open('https://blog.mgarden.org.cn/vincent/card/', '_blank')}>预览</button>
+          <button type="button" className="btn" style={{ marginTop: 14, marginLeft: 10 }} onClick={() => window.open('https://your-domain.com/<base>/card/', '_blank')}>预览</button>
           <button type="button" className="btn" style={{ marginTop: 14, marginLeft: 10 }} disabled={busyExp} onClick={exportImage}>{busyExp ? '生成中…' : '导出图片'}</button>
         </div>
       </form>

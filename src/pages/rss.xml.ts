@@ -9,7 +9,7 @@ export async function GET(context: APIContext) {
 
   return rss({
     title: 'MemoryGarden · Blog',
-    description: 'Vincent 的个人记忆花园：技术笔记、创作与开源项目进展',
+    description: '个人记忆花园：技术笔记、创作与开源项目进展',
     site: context.site ?? new URL('http://localhost:3003'),
     items: posts.map((post) => ({
       title: post.data.title,

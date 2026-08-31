@@ -1,6 +1,6 @@
 ---
 // 记忆花园 MemoryGarden · 电子名片（展会版）
-// 线上地址：https://blog.mgarden.org.cn/vincent/card/
+// 线上地址示例：https://your-domain.com/<base>/card/
 // 内容统一从 site-config.json 的 author 读取（后台「名片」页可编辑）
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,14 +10,15 @@ import siteConfig from '../../../site-config.json';
 const QR_REL = 'public/media/images/wechat-qr.png';
 const hasQr = fs.existsSync(path.resolve(process.cwd(), QR_REL))
   || fs.existsSync(new URL(`../../../${QR_REL}`, import.meta.url));
-const _base = import.meta.env.BASE_URL || '/'; // '/' 本地，'/vincent' 线上
+const _base = import.meta.env.BASE_URL || '/'; // '/' 本地，'/<user>' 线上
 const BASE = _base.endsWith('/') ? _base : _base + '/';
-const SITE = 'https://blog.mgarden.org.cn';
+// 站点域名：构建时由 PUBLIC_SITE_URL 注入，本地回退占位
+const SITE = (import.meta.env.PUBLIC_SITE_URL || 'https://your-domain.com').replace(/\/$/, '');
 
 // ── 名片内容（后台「名片」页可改：site-config.json → author）────
 const A = siteConfig.author || {};
 const CARD = {
-  name: A.name || 'Vincent',
+  name: A.name || 'Your Name',
   role: A.role || '',
   sub: (A.card && A.card.sub) || '',
   wechatId: (A.card && A.card.wechatId) || '',
@@ -29,7 +30,7 @@ const CARD = {
     : [{ name: '', desc: '', url: '' }],
 };
 const CARD_SOCIALS = [
-  { label: '个人博客', url: A.blog || 'https://blog.mgarden.org.cn/vincent/' },
+  { label: '个人博客', url: A.blog || `${SITE}${BASE}` },
   { label: 'GitHub', url: A.github },
   { label: '小红书', url: A.xiaohongshu },
 ].filter((s) => s.url);
@@ -40,9 +41,9 @@ const VALID_THEMES = ['garden', 'ocean', 'night', 'minimal', 'wine', 'violet'];
 const THEME = (A.card && A.card.theme && VALID_THEMES.includes(A.card.theme)) ? A.card.theme : 'garden';
 // ──────────────────────────────────────────────────────
 
-const CARD_URL = `${SITE}/vincent/card/`;
-const OG_IMG = `${SITE}/vincent/media/images/card-og-square.jpg`; // JPG 方形图，微信聊天卡片缩略图兼容性最好
-const OG_LOGO = `${SITE}/vincent/media/images/card-logo.png`;
+const CARD_URL = `${SITE}${BASE}card/`;
+const OG_IMG = `${SITE}${BASE}media/images/card-og-square.jpg`; // JPG 方形图，微信聊天卡片缩略图兼容性最好
+const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
 ---
 
 <!doctype html>
@@ -345,7 +346,7 @@ const OG_LOGO = `${SITE}/vincent/media/images/card-logo.png`;
     </section>
 
     <footer>
-      MemoryGarden © 2026 · <a href="https://blog.mgarden.org.cn" target="_blank" rel="noopener">blog.mgarden.org.cn</a>
+      MemoryGarden © 2026 · <a href={SITE} target="_blank" rel="noopener">your-domain.com</a>
     </footer>
   </div>
 

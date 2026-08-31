@@ -2,7 +2,7 @@
 
 现代精美的个人博客系统，基于 [Astro](https://astro.build) 构建，内容为本地 Markdown 文件，构建为纯静态站点。
 
-> 这是 [MyCenter](https://github.com/vincentlilee2) 生态的子项目，对外品牌名为 **记忆花园 (MemoryGarden)**。
+> 这是 [MyCenter](https://github.com/your-org) 生态的子项目，对外品牌名为 **记忆花园 (MemoryGarden)**。
 
 ## ✨ 特性
 
@@ -153,7 +153,7 @@ PUBLIC_SITE_URL="https://your-domain.example.com" npm run build
 
 名片页是一个独立的 H5 页面（`src/pages/card/index.astro`），适合在展会、线下活动扫码分享——手机打开即看到你的介绍、作品、社交链接和微信二维码。
 
-- 线上地址：`https://your-domain.com/<base>/card/`（如 `blog.mgarden.org.cn/vincent/card/`）
+- 线上地址：`https://your-domain.com/<base>/card/`（如 `your-domain.com/vincent/card/`）
 - **微信分享卡片**：页面带完整的 `og:` 标签 + 一张方形 `card-og-square.jpg`，在微信里发链接会显示带图卡片
 - **6 套主题配色**：记忆花园（墨绿金）/ 深海商务蓝 / 黑金奢华 / 极简白 / 典雅酒红 / 科技紫，后台一键切换
 - **左右双二维码**：个人微信 + 微信公众号，后台分别上传，名片页左右并排展示（个人微信码留空时回退到默认 `wechat-qr.png`）
