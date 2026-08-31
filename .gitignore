@@ -26,6 +26,11 @@ public/media/**
 !public/media/images/card-og-square.png
 !public/media/images/card-og-square.jpg
 
+# 个人博客文章（本地私有，不进开源仓）
+# 开源仓的示例文章在 example-posts/（README 有说明如何接入）
+src/content/blog/**
+!src/content/blog/.gitkeep
+
 # 系统文件
 .DS_Store
 Thumbs.db
