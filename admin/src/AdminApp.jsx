@@ -490,14 +490,29 @@ function CardView() {
     if (!f) return;
     setBusyUp(true);
     try {
-      const compressed = await compressImage(f);
-      const upName = f.name.replace(/\.[^.]+$/, '') + '.webp';
-      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(new Error('读取失败')); r.readAsDataURL(compressed); });
-      const r = await fetch(`${API}/media/upload`, { method: 'POST', headers, body: JSON.stringify({ name: upName, mime: 'image/webp', data: b64 }) });
-      const d = await r.json();
-      if (!d.ok) throw new Error(d.error);
-      setAuthor({ ...author, avatar: d.url });
-      setMsg({ type: 'ok', text: '头像已上传，保存名片后生效' });
+      const bmp = await createImageBitmap(f);
+      // 头像 webp：最长边 ≤512 方形裁剪（页面显示用）
+      const SZ = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = SZ; canvas.height = SZ;
+      const ctx = canvas.getContext('2d');
+      // 居中裁剪为正方形
+      const side = Math.min(bmp.width, bmp.height);
+      ctx.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, SZ, SZ);
+      if (bmp.close) bmp.close();
+      const webpBlob = await new Promise((res) => canvas.toBlob(res, 'image/webp', 0.85));
+      const jpgBlob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.85));
+      const toB64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(new Error('读取失败')); r.readAsDataURL(blob); });
+      const base = f.name.replace(/\.[^.]+$/, '');
+      // 上传 webp 头像 + jpg og 图（微信卡片用，微信不支持 webp og:image）
+      const r1 = await fetch(`${API}/media/upload`, { method: 'POST', headers, body: JSON.stringify({ name: `${base}-avatar.webp`, mime: 'image/webp', data: await toB64(webpBlob) }) });
+      const d1 = await r1.json();
+      if (!d1.ok) throw new Error(d1.error);
+      const r2 = await fetch(`${API}/media/upload`, { method: 'POST', headers, body: JSON.stringify({ name: `${base}-og.jpg`, mime: 'image/jpeg', data: await toB64(jpgBlob) }) });
+      const d2 = await r2.json();
+      if (!d2.ok) throw new Error(d2.error);
+      setAuthor({ ...author, avatar: d1.url, avatarOg: d2.url });
+      setMsg({ type: 'ok', text: '头像已上传（含微信卡片图），保存名片后生效' });
     } catch (err) { setMsg({ type: 'err', text: err.message }); } finally { setBusyUp(false); }
   };
 
@@ -602,7 +617,7 @@ function CardView() {
           <div>
             <input type="file" accept="image/*" onChange={uploadAvatar} disabled={busyUp} /> {busyUp && '上传中…'}
             <div style={{ marginTop: 6 }}>
-              <button type="button" className="btn" onClick={() => { setAuthor({ ...author, avatar: '' }); setMsg({ type: 'ok', text: '已恢复默认 Logo，保存后生效' }); }}>恢复默认 Logo</button>
+              <button type="button" className="btn" onClick={() => { setAuthor({ ...author, avatar: '', avatarOg: '' }); setMsg({ type: 'ok', text: '已恢复默认 Logo，保存后生效' }); }}>恢复默认 Logo</button>
             </div>
             <small style={{ color: '#999' }}>不上传则默认显示记忆花园 Logo</small>
           </div>

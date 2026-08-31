@@ -36,13 +36,21 @@ const CARD_SOCIALS = [
 ].filter((s) => s.url);
 // 头像：后台上传了 avatar 用 avatar，否则默认 logo（card-logo.png）
 const AVATAR_SRC = CARD.avatar ? CARD.avatar : `${BASE}media/images/card-logo.png`;
+// 微信卡片图：后台上传头像时生成的 512x512 JPG（avatarOg，微信不支持 webp og:image）；
+// 未上传头像 → 默认 card-logo.png（512x512 PNG）
+// 注意：og:image 必须是绝对 URL（微信要求），avatarOg 可能存的是相对路径（/vincent/...），需拼域名
+const absUrl = (u) => (u && u.startsWith('/') ? `${SITE}${u}` : u);
+const OG_IMG = A.avatarOg
+  ? absUrl(A.avatarOg)
+  : (CARD.avatar
+    ? absUrl(CARD.avatar) // 旧数据：有 avatar 但无 avatarOg（webp，微信可能不显示，但比默认 logo 更贴用户意图）
+    : `${SITE}${BASE}media/images/card-logo.png`);
 // 主题：后台「名片」页可选（garden/ocean/night/minimal/wine/violet），默认 garden
 const VALID_THEMES = ['garden', 'ocean', 'night', 'minimal', 'wine', 'violet'];
 const THEME = (A.card && A.card.theme && VALID_THEMES.includes(A.card.theme)) ? A.card.theme : 'garden';
 // ──────────────────────────────────────────────────────
 
 const CARD_URL = `${SITE}${BASE}card/`;
-const OG_IMG = `${SITE}${BASE}media/images/card-og-v2.jpg`; // JPG 方形图，微信聊天卡片缩略图兼容性最好（v2 新文件名，绕微信图片缓存）
 const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
 ---
 

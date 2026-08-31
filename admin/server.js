@@ -274,6 +274,7 @@ app.put('/api/site-config', (req, res) => {
       role: String(author.role || '').slice(0, 100),
       bio: String(author.bio || '').slice(0, 500),
       avatar: String(author.avatar || '').slice(0, 500),
+      avatarOg: String(author.avatarOg || '').slice(0, 500),
       card: cleanCard,
       github: String(author.github || '').slice(0, 200),
       xiaohongshu: String(author.xiaohongshu || '').slice(0, 200),
