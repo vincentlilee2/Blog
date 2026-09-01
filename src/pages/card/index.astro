@@ -51,6 +51,8 @@ const VALID_THEMES = ['garden', 'ocean', 'night', 'minimal', 'wine', 'violet'];
 const THEME = (A.card && A.card.theme && VALID_THEMES.includes(A.card.theme)) ? A.card.theme : 'garden';
 // ──────────────────────────────────────────────────────
 
+// og:url = 规范 URL（Open Graph 协议：不含传播参数，如 ?v=66 这类绕缓存参数不应进入 og:url）
+// 微信卡片异常排查记录：og:image:width/height 必须与实际图片尺寸一致（曾写 600 实际 512 导致微信拒渲染图片）
 const CARD_URL = `${SITE}${BASE}card/`;
 const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
 ---
@@ -69,8 +71,8 @@ const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
   <meta property="og:title" content={`${CARD.brand} · ${CARD.name}`} />
   <meta property="og:description" content={`${CARD.role}｜${CARD.sub}。扫码认识我，聊聊 AI 与创作。`} />
   <meta property="og:image" content={OG_IMG} />
-  <meta property="og:image:width" content="600" />
-  <meta property="og:image:height" content="600" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
   <link rel="icon" type="image/png" href={`${BASE}media/images/card-logo.png`} />
 
   <style>
@@ -300,7 +302,7 @@ const OG_LOGO = `${SITE}${BASE}media/images/card-logo.png`;
       {
         CARD.projects.filter((p) => p.name).map((p) => (
           <a class="proj" href={p.url} target="_blank" rel="noopener">
-            <div class="t"><span>{p.name}</span><i>开源 · 自研</i></div>
+            <div class="t"><span>{p.name}</span><i>自研</i></div>
             <div class="d">{p.desc}</div>
             <div class="go">查看 →</div>
           </a>
